@@ -91,8 +91,6 @@ const userSchema = new Schema<IUser>(
 );
 
 // Indexes for better query performance
-userSchema.index({ email: 1 });
-userSchema.index({ walletPublicKey: 1 });
 userSchema.index({ role: 1 });
 
 // Pre-save middleware: Hash password before saving
