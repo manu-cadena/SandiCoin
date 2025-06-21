@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate, authorize } from '../middleware/authMiddleware';
 import {
   createTransaction,
   getTransactions,
@@ -11,7 +11,7 @@ import {
 import { blockchainService } from '../services/blockchainService';
 
 /**
- * Transaction routes for SandiCoin - COMPLETELY REWRITTEN FOR AUTHENTICATION FIX
+ * Transaction routes for SandiCoin
  */
 
 const router = Router();
@@ -40,6 +40,39 @@ router.get('/debug/pool-status', (req, res) => {
         totalBlocks: blockchain.chain.length,
         lastBlockTransactions: lastBlock.data ? lastBlock.data.length : 0,
         lastBlockHash: lastBlock.hash.substring(0, 16) + '...'
+      },
+      improvements: {
+        message: "🎯 FIXED: Transaction amounts now clearly displayed!",
+        example: {
+          before: {
+            note: "User had to dig through outputMap to find actual amount",
+            response: {
+              inputAmount: 1000,
+              outputMap: { "recipient": 75, "sender_change": 925 },
+              userRole: "sender"
+            }
+          },
+          after: {
+            note: "Clear amount info now provided at top level", 
+            response: {
+              inputAmount: 1000,
+              outputMap: { "recipient": 75, "sender_change": 925 },
+              userRole: "sender",
+              actualAmount: 75,
+              amountType: "sent", 
+              recipientCount: 1
+            }
+          }
+        }
+      },
+      instructions: {
+        message: "To test the improved transaction display:",
+        steps: [
+          "1. Create a transaction: POST {{baseUrl}}/api/transactions",
+          "2. Check: GET {{baseUrl}}/api/transactions", 
+          "3. Look for actualAmount, amountType, recipientCount fields",
+          "4. Alice sending 75 will show: actualAmount: 75, amountType: 'sent'"
+        ]
       }
     }
   });
@@ -82,9 +115,7 @@ router.get('/debug/transaction-format', (req, res) => {
   });
 });
 
-// ===== PROTECTED ROUTES - AUTHENTICATION REQUIRED =====
-// ALL ROUTES BELOW REQUIRE VALID BEARER TOKEN
-
+// Protected transaction routes (require authentication) - FIXED: Apply middleware per route
 // POST /api/transactions - Create a new transaction
 router.post('/', authenticate, createTransaction);
 

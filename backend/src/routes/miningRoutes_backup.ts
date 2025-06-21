@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate, authorize } from '../middleware/authMiddleware';
 import {
   mineTransactions,
   getMiningStats,
@@ -7,14 +7,12 @@ import {
 } from '../controllers/miningController';
 
 /**
- * Mining routes for SandiCoin - COMPLETELY REWRITTEN FOR AUTHENTICATION FIX
+ * Mining routes for SandiCoin
  */
 
 const router = Router();
 
-// ===== PROTECTED ROUTES - AUTHENTICATION REQUIRED =====
-// ALL MINING ROUTES REQUIRE VALID BEARER TOKEN
-
+// Protected mining routes (miners and admins only) - FIXED: Apply middleware per route
 // POST /api/mining/mine - Mine pending transactions
 router.post('/mine', authenticate, mineTransactions);
 

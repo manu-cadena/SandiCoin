@@ -2,33 +2,34 @@ import { Blockchain } from './Blockchain';
 import { TransactionPool } from './TransactionPool';
 import { Transaction } from './Transaction';
 import { Wallet } from './Wallet';
+import { NetworkService } from '../services/networkService';
 import { logger } from '../utils/logger';
 
 /**
  * Miner class for SandiCoin
- * Processes transaction pool and mines new blocks
+ * Processes transaction pool and mines new blocks with network broadcasting
  */
 export class Miner {
   public blockchain: Blockchain;
   public transactionPool: TransactionPool;
   public wallet: Wallet;
-  public pubsub?: any; // Will be WebSocket/PubSub service for network broadcasting
+  public networkService?: NetworkService;
 
   constructor({
     blockchain,
     transactionPool,
     wallet,
-    pubsub,
+    networkService,
   }: {
     blockchain: Blockchain;
     transactionPool: TransactionPool;
     wallet: Wallet;
-    pubsub?: any;
+    networkService?: NetworkService;
   }) {
     this.blockchain = blockchain;
     this.transactionPool = transactionPool;
     this.wallet = wallet;
-    this.pubsub = pubsub;
+    this.networkService = networkService;
   }
 
   // Mine a new block with pending transactions
@@ -64,15 +65,17 @@ export class Miner {
         `Mining reward: ${process.env.MINING_REWARD || 50} SandiCoins`
       );
 
-      // 5. Broadcast new blockchain to network
-      if (this.pubsub) {
-        this.pubsub.broadcastChain();
-        logger.network('New block broadcasted to network');
-      }
-
-      // 6. Clear processed transactions from pool
+      // 5. Clear processed transactions from pool
       this.transactionPool.clearTransactions({ chain: this.blockchain.chain });
       logger.info('Transaction pool cleared');
+
+      // 6. Broadcast new blockchain to network
+      if (this.networkService) {
+        this.networkService.broadcastBlockchain();
+        logger.network('New blockchain broadcasted to network');
+      } else {
+        logger.warn('No network service - running in standalone mode');
+      }
 
       return {
         success: true,
@@ -96,9 +99,9 @@ export class Miner {
 
     // Validate all transactions (except reward transactions)
     const invalidTransactions = transactions.filter((tx) => {
-      // Skip validation for reward transactions (they use placeholder signatures)
+      // Skip validation for reward transactions
       if (tx.input.address === '*authorized-reward*') {
-        return false; // Don't validate reward transactions
+        return false;
       }
       return !Transaction.validateTransaction(tx);
     });
@@ -127,6 +130,11 @@ export class Miner {
 
     // Clear transactions from pool
     this.transactionPool.clearTransactions({ chain: this.blockchain.chain });
+
+    // Broadcast if network is available
+    if (this.networkService) {
+      this.networkService.broadcastBlockchain();
+    }
 
     return newBlock;
   }
@@ -161,6 +169,8 @@ export class Miner {
       minerTransactions,
       currentBalance: this.calculateBalance(),
       pendingTransactions: this.transactionPool.getTransactionCount(),
+      networkConnected: !!this.networkService,
+      networkStats: this.networkService?.getNetworkStats(),
     };
   }
 

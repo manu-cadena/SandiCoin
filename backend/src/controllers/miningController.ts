@@ -3,6 +3,7 @@ import { Miner } from '../models/Miner';
 import { Wallet } from '../models/Wallet';
 import { User } from '../models/User';
 import { blockchainService } from '../services/blockchainService';
+import { networkService } from '../server';
 import { logger } from '../utils/logger';
 
 // Use shared instances
@@ -20,12 +21,16 @@ export const mineTransactions = async (
     const user = req.user;
 
     // Use the user's actual wallet for mining rewards
-    const userWithWallet = await User.findById(user._id).select('+walletPrivateKey');
-    
+    const userWithWallet = await User.findById(user._id).select(
+      '+walletPrivateKey'
+    );
+
     let minerWallet: Wallet;
     if (!userWithWallet?.walletPrivateKey) {
       // Fallback for existing users without stored private keys
-      logger.warn(`Miner ${user.email} missing private key, using system wallet for demo`);
+      logger.warn(
+        `Miner ${user.email} missing private key, using system wallet for demo`
+      );
       minerWallet = new Wallet();
       minerWallet.publicKey = user.walletPublicKey; // Override to match user's address
     } else {
@@ -36,11 +41,12 @@ export const mineTransactions = async (
       });
     }
 
-    // Create miner instance
+    // Create miner instance with network service
     const miner = new Miner({
       blockchain,
       transactionPool,
       wallet: minerWallet,
+      networkService, // Include network service for broadcasting
     });
 
     // Mine pending transactions
@@ -55,6 +61,9 @@ export const mineTransactions = async (
     }
 
     logger.info(`Transactions mined by ${user.email}: ${result.block?.hash}`);
+
+    // Get network stats if available
+    const networkStats = networkService?.getNetworkStats();
 
     res.status(201).json({
       success: true,
@@ -71,6 +80,12 @@ export const mineTransactions = async (
           transactionsProcessed: result.block?.data.length || 0,
           chainLength: blockchain.getLength(),
           pendingTransactions: transactionPool.getTransactionCount(),
+        },
+        network: {
+          enabled: !!networkService,
+          broadcastSent: !!networkService,
+          connectedNodes: networkStats?.connectedNodes || 0,
+          ...networkStats,
         },
       },
     });
@@ -97,6 +112,7 @@ export const getMiningStats = async (
       blockchain,
       transactionPool,
       wallet: minerWallet,
+      networkService,
     });
 
     const stats = miner.getMiningStats();
@@ -121,6 +137,9 @@ export const getMiningStats = async (
       }
     }
 
+    // Get network stats
+    const networkStats = networkService?.getNetworkStats();
+
     res.json({
       success: true,
       data: {
@@ -135,6 +154,10 @@ export const getMiningStats = async (
           totalBlocks: stats.totalBlocks,
           totalTransactions: stats.totalTransactions,
           pendingTransactions: stats.pendingTransactions,
+          networkEnabled: !!networkService,
+          connectedNodes: networkStats?.connectedNodes || 0,
+          serverPort: networkStats?.serverPort || null,
+          peerNodes: networkStats?.peerNodes || [],
         },
         pending: {
           valid: pendingInfo.valid,
@@ -160,12 +183,12 @@ export const getMiningStats = async (
  */
 const extractTransactionAmount = (transaction: any, senderAddress: string) => {
   const { outputMap } = transaction;
-  
+
   // Find the amount sent to others (exclude sender's change)
   const sentAmounts = Object.entries(outputMap)
     .filter(([address]) => address !== senderAddress)
     .map(([, amount]) => amount as number);
-  
+
   return sentAmounts.reduce((sum, amount) => sum + amount, 0);
 };
 
@@ -190,6 +213,9 @@ export const getPendingTransactions = async (
       // In a real system, you might charge transaction fees
       return total; // For now, no fees
     }, 0);
+
+    // Get network information
+    const networkStats = networkService?.getNetworkStats();
 
     res.json({
       success: true,
@@ -217,6 +243,11 @@ export const getPendingTransactions = async (
           canMine: validTransactions.length > 0,
           potentialReward: miningReward + totalFees,
           estimatedBlockSize: validTransactions.length + 1, // +1 for reward transaction
+        },
+        network: {
+          enabled: !!networkService,
+          connectedNodes: networkStats?.connectedNodes || 0,
+          willBroadcast: !!networkService && validTransactions.length > 0,
         },
       },
     });

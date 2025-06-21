@@ -15,6 +15,7 @@ import blockchainRoutes from './routes/blockchainRoutes';
 import miningRoutes from './routes/miningRoutes';
 import { logger } from './utils/logger';
 import { blockchainService } from './services/blockchainService';
+import { NetworkService } from './services/networkService';
 
 // ES module compatibility for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -25,6 +26,9 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize network service variable
+let networkService: NetworkService | undefined;
 
 // Security middleware
 app.use(helmet());
@@ -57,9 +61,10 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/mining', miningRoutes);
 
-// Health check
+// Health check with network status
 app.get('/health', async (req, res) => {
   const dbHealth = await database.healthCheck();
+  const networkStats = networkService?.getNetworkStats();
 
   res.json({
     success: true,
@@ -70,7 +75,25 @@ app.get('/health', async (req, res) => {
     services: {
       api: 'healthy',
       database: dbHealth.status,
+      network: networkService ? 'enabled' : 'disabled',
     },
+    network: networkStats || null,
+  });
+});
+
+// Network stats endpoint
+app.get('/api/network/stats', (req, res) => {
+  if (!networkService) {
+    res.status(404).json({
+      success: false,
+      message: 'Network service is not enabled',
+    });
+    return;
+  }
+
+  res.json({
+    success: true,
+    data: networkService.getNetworkStats(),
   });
 });
 
@@ -118,6 +141,23 @@ const startServer = async () => {
     await blockchainService.initialize();
     logger.info('Blockchain service initialized');
 
+    // Initialize network service
+    if (process.env.ENABLE_NETWORK !== 'false') {
+      try {
+        networkService = new NetworkService(
+          blockchainService.blockchain,
+          blockchainService.transactionPool
+        );
+        networkService.listen();
+        logger.success('Network service started');
+      } catch (networkError) {
+        logger.error('Failed to start network service:', networkError);
+        logger.warn('Continuing without network functionality');
+      }
+    } else {
+      logger.info('Network service disabled by configuration');
+    }
+
     app.listen(PORT, () => {
       logger.success(`SandiCoin server running on port ${PORT}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
@@ -134,6 +174,25 @@ const startServer = async () => {
       console.log(`💰 Transactions: http://localhost:${PORT}/api/transactions`);
       console.log(`⛓️  Blockchain: http://localhost:${PORT}/api/blockchain`);
       console.log(`⛏️  Mining: http://localhost:${PORT}/api/mining`);
+
+      if (networkService) {
+        const socketPort = process.env.SOCKET_PORT || 5001;
+        console.log(`🌐 P2P Network: ws://localhost:${socketPort}`);
+        console.log(
+          `🔗 Network stats: http://localhost:${PORT}/api/network/stats`
+        );
+
+        const peerNodes = process.env.PEER_NODES;
+        if (peerNodes) {
+          console.log(`🔗 Connecting to peers: ${peerNodes}`);
+        } else {
+          console.log(
+            `💡 To connect to peers, set PEER_NODES environment variable`
+          );
+        }
+      } else {
+        console.log(`📴 Network service disabled`);
+      }
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
@@ -141,5 +200,8 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+// Export network service for use in controllers
+export { networkService };
 
 startServer();
