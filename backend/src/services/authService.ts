@@ -65,6 +65,7 @@ export default class AuthService {
       password,
       role: role || 'user',
       walletPublicKey: wallet.publicKey,
+      walletPrivateKey: wallet.getPrivateKey(), // Store private key for demo
     };
 
     const newUser = await User.create(newUserData);

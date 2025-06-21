@@ -6,13 +6,24 @@ export class Wallet {
   public publicKey: string;
   private privateKey: string;
 
-  constructor() {
+  constructor(existingKeys?: { publicKey: string; privateKey: string }) {
     this.balance = parseInt(process.env.STARTING_BALANCE || '1000'); // Starting coins for new users
 
-    // Generate cryptographic key pair
-    const keyPair = generateKeyPair();
-    this.publicKey = keyPair.publicKey;
-    this.privateKey = keyPair.privateKey;
+    if (existingKeys) {
+      // Use provided keys
+      this.publicKey = existingKeys.publicKey;
+      this.privateKey = existingKeys.privateKey;
+    } else {
+      // Generate new cryptographic key pair
+      const keyPair = generateKeyPair();
+      this.publicKey = keyPair.publicKey;
+      this.privateKey = keyPair.privateKey;
+    }
+  }
+
+  // Get private key (for storing in database - demo purposes only)
+  getPrivateKey(): string {
+    return this.privateKey;
   }
 
   // 🔐 CRYPTOGRAPHIC SIGNING - The heart of security!

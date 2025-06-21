@@ -16,6 +16,7 @@ export interface IUser extends Document {
   password: string;
   role: 'user' | 'admin' | 'miner';
   walletPublicKey?: string;
+  walletPrivateKey?: string; // Encrypted private key for demo purposes
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;
@@ -68,6 +69,10 @@ const userSchema = new Schema<IUser>(
       type: String,
       unique: true,
       sparse: true, // Allows multiple null values
+    },
+    walletPrivateKey: {
+      type: String,
+      select: false, // Don't include in queries by default (security)
     },
     isActive: {
       type: Boolean,
