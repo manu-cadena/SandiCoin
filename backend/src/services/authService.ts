@@ -57,6 +57,13 @@ export default class AuthService {
     // Create cryptocurrency wallet for the user
     const wallet = new Wallet();
 
+    // ⚠️ SECURITY WARNING: Storing private keys server-side is for DEMO ONLY!
+    // Production apps should:
+    // 1. Generate keys client-side (user's browser/app)
+    // 2. Users store their own private keys (hardware wallet, encrypted file, etc.)
+    // 3. Server only stores public addresses for transaction validation
+    // This violates "not your keys, not your coins" principle!
+
     // Create new user
     const newUserData: Partial<IUser> = {
       firstName,
@@ -64,9 +71,9 @@ export default class AuthService {
       email,
       password,
       role: role || 'user',
-      walletPublicKey: wallet.publicKey,
-      walletPrivateKey: wallet.getPrivateKey(), // Store private key for demo
-      walletCryptoPublicKey: wallet.cryptoPublicKey, // Store PEM public key for signature verification
+      walletPublicKey: wallet.publicKey,                    // ✅ Safe: Public address
+      walletPrivateKey: wallet.getPrivateKey(),             // ⚠️ DEMO ONLY - Security risk!
+      walletCryptoPublicKey: wallet.cryptoPublicKey,        // ✅ Safe: Public key for verification
     };
 
     const newUser = await User.create(newUserData);

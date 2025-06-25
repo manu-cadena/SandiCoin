@@ -384,6 +384,20 @@ GET /api/network/stats
 - **Blockchain validation** on every sync
 - **Peer verification** and connection limits
 
+### ⚠️ Security Warning - Private Key Storage
+
+**🚨 IMPORTANT: This implementation stores private keys in the database for demonstration purposes only!**
+
+In production cryptocurrency applications:
+- **Never store private keys server-side** - Users should generate and manage their own keys
+- **Client-side key generation** - Keys should be created in the user's browser/app
+- **User-controlled storage** - Hardware wallets, encrypted files, seed phrases, etc.
+- **Server only stores public data** - Public addresses and transaction history
+
+This violates the fundamental crypto principle: **"Not your keys, not your coins"**
+
+For academic/demo purposes, this approach allows testing the complete system, but a production frontend should implement proper client-side wallet management.
+
 ## 🌐 Multi-Node Network
 
 ### Network Topology

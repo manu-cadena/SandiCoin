@@ -15,9 +15,9 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: 'user' | 'admin' | 'miner';
-  walletPublicKey?: string;        // Bitcoin-style address
-  walletPrivateKey?: string;       // Encrypted private key for demo purposes
-  walletCryptoPublicKey?: string;  // PEM public key for signature verification
+  walletPublicKey?: string;        // Bitcoin-style address (public)
+  walletPrivateKey?: string;       // ⚠️ DEMO ONLY - NEVER store private keys in production!
+  walletCryptoPublicKey?: string;  // PEM public key for signature verification (safe to store)
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;
@@ -74,10 +74,13 @@ const userSchema = new Schema<IUser>(
     walletPrivateKey: {
       type: String,
       select: false, // Don't include in queries by default (security)
+      // ⚠️ SECURITY WARNING: Storing private keys in database violates crypto security principles!
+      // In production: Users should generate/store keys client-side (browser, hardware wallet, etc.)
     },
     walletCryptoPublicKey: {
       type: String,
       select: false, // Don't include in queries by default (security)
+      // ✅ SAFE: Public keys can be stored server-side for signature verification
     },
     isActive: {
       type: Boolean,
