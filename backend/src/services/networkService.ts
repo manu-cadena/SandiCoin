@@ -236,7 +236,11 @@ export class NetworkService {
     try {
       const originalLength = this.blockchain.getLength();
 
-      if (this.blockchain.replaceChain(incomingChain)) {
+      // Convert raw objects to Block instances
+      const { Block } = require('../models/Block');
+      const blockInstances = incomingChain.map(blockData => new Block(blockData));
+
+      if (this.blockchain.replaceChain(blockInstances)) {
         const newLength = this.blockchain.getLength();
         logger.success(
           `⛓️  Blockchain updated! ${originalLength} → ${newLength} blocks`
@@ -262,7 +266,11 @@ export class NetworkService {
     try {
       const originalLength = this.blockchain.getLength();
 
-      if (this.blockchain.replaceChain(incomingChain)) {
+      // Convert raw objects to Block instances
+      const { Block } = require('../models/Block');
+      const blockInstances = incomingChain.map(blockData => new Block(blockData));
+
+      if (this.blockchain.replaceChain(blockInstances)) {
         const newLength = this.blockchain.getLength();
         logger.success(
           `🆕 New block received! Chain: ${originalLength} → ${newLength} blocks`

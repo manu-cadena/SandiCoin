@@ -15,8 +15,9 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: 'user' | 'admin' | 'miner';
-  walletPublicKey?: string;
-  walletPrivateKey?: string; // Encrypted private key for demo purposes
+  walletPublicKey?: string;        // Bitcoin-style address
+  walletPrivateKey?: string;       // Encrypted private key for demo purposes
+  walletCryptoPublicKey?: string;  // PEM public key for signature verification
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;
@@ -71,6 +72,10 @@ const userSchema = new Schema<IUser>(
       sparse: true, // Allows multiple null values
     },
     walletPrivateKey: {
+      type: String,
+      select: false, // Don't include in queries by default (security)
+    },
+    walletCryptoPublicKey: {
       type: String,
       select: false, // Don't include in queries by default (security)
     },

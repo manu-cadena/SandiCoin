@@ -9,7 +9,8 @@ import {
 export interface TransactionInput {
   timestamp: number;
   amount: number; // Sender's balance at time of transaction
-  address: string; // Sender's public key/wallet address
+  address: string; // Sender's Bitcoin-style wallet address
+  cryptoPublicKey?: string; // Real PEM public key for signature verification
   signature: string; // Cryptographic proof sender authorized this
 }
 
@@ -28,7 +29,8 @@ export interface TransactionData {
 // Forward declaration to avoid circular imports
 export interface WalletInterface {
   balance: number;
-  publicKey: string;
+  publicKey: string;           // Bitcoin-style address
+  cryptoPublicKey: string;     // Real PEM public key
   sign(data: any): string;
 }
 
@@ -64,8 +66,16 @@ export class Transaction {
 
     // Create output map (where money goes)
     const outputMap: TransactionOutputMap = {};
-    outputMap[recipient] = amount; // Recipient gets the amount
-    outputMap[senderWallet.publicKey] = senderWallet.balance - amount; // Sender gets "change"
+    
+    // Handle self-transaction case
+    if (recipient === senderWallet.publicKey) {
+      // Self-transaction: just update the sender's balance
+      outputMap[senderWallet.publicKey] = senderWallet.balance;
+    } else {
+      // Normal transaction: recipient gets amount, sender gets change
+      outputMap[recipient] = amount; // Recipient gets the amount
+      outputMap[senderWallet.publicKey] = senderWallet.balance - amount; // Sender gets "change"
+    }
 
     // Create transaction
     const transaction = new Transaction({
@@ -88,8 +98,9 @@ export class Transaction {
     return {
       timestamp: Date.now(),
       amount: senderWallet.balance,
-      address: senderWallet.publicKey,
-      signature: senderWallet.sign(outputMap), // 🔐 CRYPTOGRAPHIC SIGNATURE!
+      address: senderWallet.publicKey,                  // Bitcoin-style address
+      cryptoPublicKey: senderWallet.cryptoPublicKey,    // Real PEM public key for crypto
+      signature: senderWallet.sign(outputMap),          // 🔐 CRYPTOGRAPHIC SIGNATURE!
     };
   }
 

@@ -67,18 +67,35 @@ export const createTransaction = async (
       return;
     }
 
-    // Find recipient user
-    const recipientUser = await User.findOne({ email: recipient });
-    if (!recipientUser) {
-      res.status(404).json({
-        success: false,
-        message: 'Recipient user not found',
-      });
-      return;
+    // Find recipient user by email OR public key
+    let recipientUser;
+    let recipientAddress;
+    
+    // Check if recipient looks like a Bitcoin-style address (starts with 1)
+    if (recipient.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/)) {
+      // It's a public key/address
+      recipientAddress = recipient;
+      recipientUser = await User.findOne({ walletPublicKey: recipient });
+      
+      if (!recipientUser) {
+        // Allow transactions to external addresses (not in our user database)
+        logger.info(`Transaction to external address: ${recipient}`);
+      }
+    } else {
+      // It's an email address
+      recipientUser = await User.findOne({ email: recipient });
+      if (!recipientUser) {
+        res.status(404).json({
+          success: false,
+          message: 'Recipient user not found',
+        });
+        return;
+      }
+      recipientAddress = recipientUser.walletPublicKey!;
     }
 
     // Get user's wallet keys from database
-    const userWithWallet = await User.findById(user._id).select('+walletPrivateKey');
+    const userWithWallet = await User.findById(user._id).select('+walletPrivateKey +walletCryptoPublicKey');
     
     let userWallet: Wallet;
     if (!userWithWallet?.walletPrivateKey) {
@@ -92,6 +109,7 @@ export const createTransaction = async (
       userWallet = new Wallet({
         publicKey: userAddress,
         privateKey: userWithWallet.walletPrivateKey,
+        cryptoPublicKey: userWithWallet.walletCryptoPublicKey,
       });
     }
 
@@ -124,7 +142,7 @@ export const createTransaction = async (
       // Update existing transaction
       existingTransaction.update({
         senderWallet: userWallet,
-        recipient: recipientUser.walletPublicKey!,
+        recipient: recipientAddress,
         amount,
       });
       transaction = existingTransaction;
@@ -132,13 +150,22 @@ export const createTransaction = async (
       // Create new transaction
       transaction = Transaction.createTransaction({
         senderWallet: userWallet,
-        recipient: recipientUser.walletPublicKey!,
+        recipient: recipientAddress,
         amount,
       });
     }
 
     // Add to transaction pool
     transactionPool.setTransaction(transaction);
+    
+    // Import networkService to broadcast transaction
+    const { networkService } = await import('../server');
+    if (networkService) {
+      networkService.broadcastTransaction(transaction);
+      logger.info('Transaction broadcasted to network');
+    } else {
+      logger.warn('Network service not available - transaction not broadcasted');
+    }
 
     logger.info(
       `Transaction created: ${amount} SandiCoins from ${user.email} to ${recipient}`
@@ -152,7 +179,7 @@ export const createTransaction = async (
           ...transaction.toJSON(),
           // Add clear transaction details for user clarity
           actualAmount: amount, // The amount actually being sent
-          recipient: recipientUser.walletPublicKey,
+          recipient: recipientAddress,
           sender: userAddress,
         },
         currentBalance,
@@ -235,7 +262,16 @@ export const getTransactions = async (
         const isRecipient = tx.outputMap[userAddress] !== undefined;
 
         logger.info(
-          `Checking pending tx ${tx.id}: sender=${isSender}, recipient=${isRecipient}, txAddr length=${tx.input.address.length}, userAddr length=${userAddress?.length}`
+          `Checking pending tx ${tx.id.substring(0,8)}: sender=${isSender}, recipient=${isRecipient}`
+        );
+        logger.info(
+          `  TX Address: '${tx.input.address}'`
+        );
+        logger.info(
+          `  User Address: '${userAddress}'`
+        );
+        logger.info(
+          `  Addresses match: ${tx.input.address === userAddress}`
         );
 
         return isSender || isRecipient;

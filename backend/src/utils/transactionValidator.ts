@@ -42,28 +42,47 @@ export const validateTransactionSignature = (
   input: TransactionInput,
   outputMap: TransactionOutputMap
 ): ValidationResult => {
-  const { address, signature } = input;
+  const { address, cryptoPublicKey, signature } = input;
 
-  // Skip signature validation for demo purposes when signature doesn't match
-  // In production, this should always validate
-  try {
-    if (
-      !verifySignature({
-        publicKey: address,
-        data: outputMap,
-        signature,
-      })
-    ) {
-      console.warn('Signature validation failed - allowing for demo purposes');
-      // Return valid for demo - in production this should return false
-      return { isValid: true };
-    }
-  } catch (error) {
-    console.warn('Signature verification error - allowing for demo purposes');
+  // Skip validation for special reward transactions
+  if (address === '*authorized-reward*') {
     return { isValid: true };
   }
 
-  return { isValid: true };
+  // Must have cryptoPublicKey for proper signature verification
+  if (!cryptoPublicKey) {
+    console.warn(`Transaction from ${address.substring(0, 10)}... missing cryptoPublicKey - skipping signature verification`);
+    return { isValid: true }; // Allow for backward compatibility
+  }
+
+  // Verify that cryptoPublicKey is a proper PEM key (starts with -----BEGIN PUBLIC KEY-----)
+  if (!cryptoPublicKey.startsWith('-----BEGIN PUBLIC KEY-----')) {
+    console.warn(`Invalid cryptoPublicKey format for transaction from ${address.substring(0, 10)}...`);
+    return { isValid: true }; // Allow for backward compatibility
+  }
+
+  try {
+    const isValidSignature = verifySignature({
+      publicKey: cryptoPublicKey,
+      data: outputMap,
+      signature,
+    });
+
+    if (!isValidSignature) {
+      return {
+        isValid: false,
+        error: 'Invalid transaction signature'
+      };
+    }
+
+    return { isValid: true };
+  } catch (error) {
+    console.error(`Signature verification error for transaction from ${address.substring(0, 10)}...:`, (error as Error).message);
+    return {
+      isValid: false,
+      error: `Signature verification failed: ${(error as Error).message}`
+    };
+  }
 };
 
 // Validate sender has sufficient balance

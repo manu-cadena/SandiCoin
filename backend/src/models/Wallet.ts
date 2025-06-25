@@ -3,20 +3,23 @@ import { generateKeyPair, signData } from '../utils/cryptography';
 
 export class Wallet {
   public balance: number;
-  public publicKey: string;
+  public publicKey: string;        // Bitcoin-style address for transactions
+  public cryptoPublicKey: string;  // Real PEM public key for signature verification
   private privateKey: string;
 
-  constructor(existingKeys?: { publicKey: string; privateKey: string }) {
+  constructor(existingKeys?: { publicKey: string; privateKey: string; cryptoPublicKey?: string }) {
     this.balance = parseInt(process.env.STARTING_BALANCE || '1000'); // Starting coins for new users
 
     if (existingKeys) {
-      // Use provided keys
+      // Use provided keys (backward compatibility)
       this.publicKey = existingKeys.publicKey;
       this.privateKey = existingKeys.privateKey;
+      this.cryptoPublicKey = existingKeys.cryptoPublicKey || existingKeys.publicKey; // Fallback for old data
     } else {
       // Generate new cryptographic key pair
       const keyPair = generateKeyPair();
-      this.publicKey = keyPair.publicKey;
+      this.publicKey = keyPair.bitcoinAddress;      // Use Bitcoin address for transactions
+      this.cryptoPublicKey = keyPair.publicKey;     // Store real public key for crypto
       this.privateKey = keyPair.privateKey;
     }
   }

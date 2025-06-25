@@ -10,23 +10,30 @@ describe('Miner', () => {
   let blockchain: Blockchain;
   let transactionPool: TransactionPool;
   let wallet: Wallet;
-  let mockPubsub: any;
+  let mockNetworkService: any;
 
   beforeEach(() => {
     blockchain = new Blockchain();
     transactionPool = new TransactionPool();
     wallet = new Wallet();
 
-    // Mock pubsub for network broadcasting
-    mockPubsub = {
-      broadcastChain: vi.fn(),
+    // Mock network service for broadcasting
+    mockNetworkService = {
+      broadcastBlockchain: vi.fn(),
+      broadcastTransaction: vi.fn(),
+      getNetworkStats: vi.fn().mockReturnValue({
+        connectedNodes: 2,
+        nodeId: 'test-node',
+        serverPort: 5001,
+        peerNodes: ['ws://localhost:5002'],
+      }),
     };
 
     miner = new Miner({
       blockchain,
       transactionPool,
       wallet,
-      pubsub: mockPubsub,
+      networkService: mockNetworkService,
     });
   });
 
@@ -35,7 +42,7 @@ describe('Miner', () => {
       expect(miner.blockchain).toBe(blockchain);
       expect(miner.transactionPool).toBe(transactionPool);
       expect(miner.wallet).toBe(wallet);
-      expect(miner.pubsub).toBe(mockPubsub);
+      expect(miner.networkService).toBe(mockNetworkService);
     });
   });
 
@@ -93,7 +100,7 @@ describe('Miner', () => {
     it('should broadcast chain to network', () => {
       miner.mineTransactions();
 
-      expect(mockPubsub.broadcastChain).toHaveBeenCalled();
+      expect(mockNetworkService.broadcastBlockchain).toHaveBeenCalled();
     });
 
     it('should return error when no valid transactions', () => {

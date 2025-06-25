@@ -71,3 +71,6 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+
+# Auto-port state file
+.port-state.json
