@@ -5,7 +5,8 @@ import './App.css';
 
 // Main App Content (authenticated vs non-authenticated)
 const AppContent: React.FC = () => {
-  const { user, wallet, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, wallet, isAuthenticated, isLoading, logout, refreshUserData } =
+    useAuth();
 
   // Show loading spinner while checking authentication
   if (isLoading) {

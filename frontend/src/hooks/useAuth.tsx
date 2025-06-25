@@ -83,21 +83,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await apiService.login(credentials);
 
       if (response.success && response.data) {
-        const {
-          user: userData,
-          wallet: walletData,
-          accessToken,
-        } = response.data;
+        const { user: userData, accessToken } = response.data;
 
-        // Store token and user data
+        // Store token
         apiService.setAuthToken(accessToken);
 
-        // Update state
+        // Update user state
         setUser(userData);
-        setWallet(walletData);
 
         console.log('✅ Login successful for:', userData.email);
-        console.log('💰 Wallet balance:', walletData.balance);
+
+        // Fetch wallet balance separately since it's not in login response
+        try {
+          const balanceResponse = await apiService.getWalletBalance();
+          if (balanceResponse.success) {
+            setWallet({
+              publicKey:
+                balanceResponse.data.address || userData.walletPublicKey,
+              balance: balanceResponse.data.balance,
+            });
+            console.log(
+              '💰 Wallet balance loaded:',
+              balanceResponse.data.balance
+            );
+          }
+        } catch (balanceError) {
+          console.warn('⚠️ Could not load wallet balance:', balanceError);
+          // Set default wallet data
+          setWallet({
+            publicKey: userData.walletPublicKey,
+            balance: 0,
+          });
+        }
       } else {
         throw new Error(response.message || 'Login failed');
       }
@@ -171,12 +188,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       if (!isAuthenticated) return;
 
+      console.log('🔄 Refreshing wallet balance...');
+
       // Refresh wallet balance
       const balanceResponse = await apiService.getWalletBalance();
-      if (balanceResponse.success && wallet) {
+      if (balanceResponse.success) {
         setWallet((prev) =>
-          prev ? { ...prev, balance: balanceResponse.data.balance } : null
+          prev
+            ? {
+                ...prev,
+                balance: balanceResponse.data.balance,
+                publicKey: balanceResponse.data.address || prev.publicKey,
+              }
+            : null
         );
+        console.log('💰 Balance updated:', balanceResponse.data.balance);
       }
     } catch (err) {
       console.error('Failed to refresh user data:', err);
@@ -212,10 +238,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 const userData = JSON.parse(storedUserData);
                 setUser(userData);
                 setWallet({
-                  publicKey: userData.walletPublicKey,
+                  publicKey:
+                    balanceResponse.data.address || userData.walletPublicKey,
                   balance: balanceResponse.data.balance,
                 });
                 console.log('✅ Auth state restored successfully');
+                console.log(
+                  '💰 Current balance:',
+                  balanceResponse.data.balance
+                );
               }
             }
           } catch {
