@@ -58,10 +58,28 @@ const AppContent: React.FC = () => {
 
           <div className='flex items-center gap-4'>
             <div className='text-center'>
-              <div
-                className='text-lg font-bold'
-                style={{ color: 'var(--sandicoin-success)' }}>
-                💰 {wallet?.balance || 0} SandiCoins
+              <div className='flex items-center justify-center gap-2 mb-2'>
+                <div
+                  className='text-lg font-bold'
+                  style={{ color: 'var(--sandicoin-success)' }}>
+                  💰 {wallet?.balance || 0} SandiCoins
+                </div>
+                <button
+                  onClick={() => {
+                    console.log('🔄 Refreshing balance...');
+                    refreshUserData();
+                  }}
+                  className='btn'
+                  style={{
+                    fontSize: '12px',
+                    padding: '4px 8px',
+                    backgroundColor: 'transparent',
+                    color: 'var(--sandicoin-primary)',
+                    borderRadius: '4px',
+                  }}
+                  title='Refresh Balance'>
+                  🔄
+                </button>
               </div>
               <small style={{ color: 'var(--sandicoin-secondary)' }}>
                 Wallet Balance

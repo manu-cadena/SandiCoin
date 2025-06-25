@@ -11,28 +11,33 @@ const { blockchain, transactionPool } = blockchainService;
 /**
  * Helper function to extract user-friendly amount from transaction
  */
-const extractTransactionAmount = (transaction: any, userAddress: string, userRole: string) => {
+const extractTransactionAmount = (
+  transaction: any,
+  userAddress: string,
+  userRole: string
+) => {
   const { outputMap } = transaction;
-  
+
   if (userRole === 'sender') {
     // For sender: find the amount sent to others (exclude their own change)
     const sentAmounts = Object.entries(outputMap)
       .filter(([address]) => address !== userAddress)
       .map(([, amount]) => amount as number);
-    
+
     return {
       amount: sentAmounts.reduce((sum, amount) => sum + amount, 0),
       type: 'sent',
-      recipients: Object.keys(outputMap).filter(addr => addr !== userAddress).length
+      recipients: Object.keys(outputMap).filter((addr) => addr !== userAddress)
+        .length,
     };
   } else {
     // For recipient: find the amount received by user
     const receivedAmount = outputMap[userAddress] || 0;
-    
+
     return {
       amount: receivedAmount,
       type: 'received',
-      recipients: 1
+      recipients: 1,
     };
   }
 };
@@ -70,13 +75,13 @@ export const createTransaction = async (
     // Find recipient user by email OR public key
     let recipientUser;
     let recipientAddress;
-    
+
     // Check if recipient looks like a Bitcoin-style address (starts with 1)
     if (recipient.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/)) {
       // It's a public key/address
       recipientAddress = recipient;
       recipientUser = await User.findOne({ walletPublicKey: recipient });
-      
+
       if (!recipientUser) {
         // Allow transactions to external addresses (not in our user database)
         logger.info(`Transaction to external address: ${recipient}`);
@@ -95,13 +100,17 @@ export const createTransaction = async (
     }
 
     // Get user's wallet keys from database
-    const userWithWallet = await User.findById(user._id).select('+walletPrivateKey +walletCryptoPublicKey');
-    
+    const userWithWallet = await User.findById(user._id).select(
+      '+walletPrivateKey +walletCryptoPublicKey'
+    );
+
     let userWallet: Wallet;
     if (!userWithWallet?.walletPrivateKey) {
       // Fallback for existing users without stored private keys
       // In production, users would sign transactions client-side
-      logger.warn(`User ${user.email} missing private key, using system wallet for demo`);
+      logger.warn(
+        `User ${user.email} missing private key, using system wallet for demo`
+      );
       userWallet = new Wallet();
       userWallet.publicKey = userAddress; // Override to match user's address
     } else {
@@ -157,14 +166,16 @@ export const createTransaction = async (
 
     // Add to transaction pool
     transactionPool.setTransaction(transaction);
-    
+
     // Import networkService to broadcast transaction
     const { networkService } = await import('../server');
     if (networkService) {
       networkService.broadcastTransaction(transaction);
       logger.info('Transaction broadcasted to network');
     } else {
-      logger.warn('Network service not available - transaction not broadcasted');
+      logger.warn(
+        'Network service not available - transaction not broadcasted'
+      );
     }
 
     logger.info(
@@ -226,14 +237,22 @@ export const getTransactions = async (
         }
 
         // Check if user was recipient (only if not already sender)
-        if (transaction.outputMap && transaction.outputMap[userAddress] && userRole !== 'sender') {
+        if (
+          transaction.outputMap &&
+          transaction.outputMap[userAddress] &&
+          userRole !== 'sender'
+        ) {
           isUserTransaction = true;
           userRole = 'recipient';
         }
 
         if (isUserTransaction) {
-          const amountInfo = extractTransactionAmount(transaction, userAddress, userRole);
-          
+          const amountInfo = extractTransactionAmount(
+            transaction,
+            userAddress,
+            userRole
+          );
+
           userTransactions.push({
             ...transaction,
             blockIndex: i,
@@ -262,24 +281,22 @@ export const getTransactions = async (
         const isRecipient = tx.outputMap[userAddress] !== undefined;
 
         logger.info(
-          `Checking pending tx ${tx.id.substring(0,8)}: sender=${isSender}, recipient=${isRecipient}`
+          `Checking pending tx ${tx.id.substring(
+            0,
+            8
+          )}: sender=${isSender}, recipient=${isRecipient}`
         );
-        logger.info(
-          `  TX Address: '${tx.input.address}'`
-        );
-        logger.info(
-          `  User Address: '${userAddress}'`
-        );
-        logger.info(
-          `  Addresses match: ${tx.input.address === userAddress}`
-        );
+        logger.info(`  TX Address: '${tx.input.address}'`);
+        logger.info(`  User Address: '${userAddress}'`);
+        logger.info(`  Addresses match: ${tx.input.address === userAddress}`);
 
         return isSender || isRecipient;
       })
       .map((tx) => {
-        const userRole = tx.input.address === userAddress ? 'sender' : 'recipient';
+        const userRole =
+          tx.input.address === userAddress ? 'sender' : 'recipient';
         const amountInfo = extractTransactionAmount(tx, userAddress, userRole);
-        
+
         return {
           ...tx.toJSON(),
           status: 'pending',
@@ -395,7 +412,8 @@ export const getTransactionPool = async (
 };
 
 /**
- * Get wallet balance
+ * Get wallet balance with available balance calculation
+ * Returns both confirmed balance and available balance (considering pending transactions)
  */
 export const getWalletBalance = async (
   req: Request,
@@ -404,22 +422,82 @@ export const getWalletBalance = async (
 ): Promise<void> => {
   try {
     const user = req.user;
+    const userAddress = user.walletPublicKey;
 
-    const balance = Wallet.calculateBalance({
-      address: user.walletPublicKey,
+    // Calculate confirmed balance from blockchain
+    const confirmedBalance = Wallet.calculateBalance({
+      address: userAddress,
       chain: blockchain.chain,
     });
+
+    // Calculate pending outgoing amount
+    let pendingOutgoingAmount = 0;
+    let pendingIncomingAmount = 0;
+    let pendingTransactionCount = 0;
+
+    // Get all pending transactions from pool
+    const allPendingTransactions = transactionPool.getAllTransactions();
+
+    for (const tx of allPendingTransactions) {
+      // Check if user is sender (outgoing transaction)
+      if (tx.input.address === userAddress) {
+        // For outgoing transactions, calculate the total amount being sent out
+        // (excluding the change that comes back to the sender)
+        const totalOutput = Object.values(tx.outputMap).reduce(
+          (sum, amount) => sum + amount,
+          0
+        );
+        const changeBackToSender = tx.outputMap[userAddress] || 0;
+        const actualAmountSent = totalOutput - changeBackToSender;
+
+        pendingOutgoingAmount += actualAmountSent;
+        pendingTransactionCount++;
+      }
+
+      // Check if user is recipient (incoming transaction)
+      if (tx.outputMap[userAddress] && tx.input.address !== userAddress) {
+        pendingIncomingAmount += tx.outputMap[userAddress];
+      }
+    }
+
+    // Calculate available balance
+    // Available = Confirmed + Pending Incoming - Pending Outgoing
+    const availableBalance =
+      confirmedBalance + pendingIncomingAmount - pendingOutgoingAmount;
+
+    // Ensure available balance never goes negative
+    const safeAvailableBalance = Math.max(0, availableBalance);
+
+    logger.info(`Balance calculation for ${user.email}:
+      Confirmed: ${confirmedBalance}
+      Pending Outgoing: ${pendingOutgoingAmount}
+      Pending Incoming: ${pendingIncomingAmount}
+      Available: ${safeAvailableBalance}`);
 
     res.json({
       success: true,
       data: {
-        balance,
-        address: user.walletPublicKey,
-        pendingTransactions: transactionPool.existingTransaction({
-          inputAddress: user.walletPublicKey,
-        })
-          ? 1
-          : 0,
+        // Primary balance - what the user can actually spend
+        balance: safeAvailableBalance,
+
+        // Detailed breakdown for transparency
+        balanceDetails: {
+          confirmed: confirmedBalance,
+          pendingIncoming: pendingIncomingAmount,
+          pendingOutgoing: pendingOutgoingAmount,
+          available: safeAvailableBalance,
+        },
+
+        // Wallet info
+        address: userAddress,
+
+        // Transaction counts
+        pendingTransactions: pendingTransactionCount,
+        totalPendingInPool: allPendingTransactions.length,
+
+        // Status flags
+        hasPendingTransactions: pendingTransactionCount > 0,
+        balanceReduced: pendingOutgoingAmount > 0,
       },
     });
   } catch (error) {
@@ -434,18 +512,18 @@ export const getWalletBalance = async (
 export const debugUserTransactions = async (req: Request, res: Response) => {
   const user = req.user;
   const userAddress = user.walletPublicKey;
-  
+
   // Get all transactions from pool
   const allPoolTransactions = transactionPool.getAllTransactions();
-  
+
   // Check exact matches
-  const matches = allPoolTransactions.map(tx => ({
+  const matches = allPoolTransactions.map((tx) => ({
     txId: tx.id.substring(0, 8),
     txInputAddress: tx.input.address.substring(0, 50),
     userAddress: userAddress.substring(0, 50),
     exactMatch: tx.input.address === userAddress,
-    outputKeys: Object.keys(tx.outputMap).map(k => k.substring(0, 50))
+    outputKeys: Object.keys(tx.outputMap).map((k) => k.substring(0, 50)),
   }));
-  
+
   res.json({ matches, totalInPool: allPoolTransactions.length });
 };

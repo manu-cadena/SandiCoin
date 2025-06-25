@@ -222,43 +222,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Check if user has valid token
         const token = apiService.getAuthToken();
+        const storedUserData = localStorage.getItem('sandicoin_user');
 
-        if (token) {
-          console.log('🔄 Found stored token, verifying...');
+        if (token && storedUserData) {
+          console.log('🔄 Found stored auth data, verifying...');
 
           try {
+            // Parse stored user data first
+            const userData = JSON.parse(storedUserData);
+
             // Try to fetch wallet balance to verify token is still valid
             const balanceResponse = await apiService.getWalletBalance();
 
             if (balanceResponse.success) {
-              // Token is valid, try to restore user from stored data
-              const storedUserData = localStorage.getItem('sandicoin_user');
-
-              if (storedUserData) {
-                const userData = JSON.parse(storedUserData);
-                setUser(userData);
-                setWallet({
-                  publicKey:
-                    balanceResponse.data.address || userData.walletPublicKey,
-                  balance: balanceResponse.data.balance,
-                });
-                console.log('✅ Auth state restored successfully');
-                console.log(
-                  '💰 Current balance:',
-                  balanceResponse.data.balance
-                );
-              }
+              // Token is valid, restore full auth state
+              setUser(userData);
+              setWallet({
+                publicKey:
+                  balanceResponse.data.address || userData.walletPublicKey,
+                balance: balanceResponse.data.balance,
+              });
+              console.log('✅ Auth state restored successfully');
+              console.log('💰 Current balance:', balanceResponse.data.balance);
+            } else {
+              // Token invalid, clear auth data
+              console.log('❌ Token validation failed, clearing auth data');
+              logout();
             }
-          } catch {
-            console.log('❌ Token validation failed, clearing auth data');
-            logout();
+          } catch (err: any) {
+            // If it's a network error, keep user logged in but show 0 balance
+            if (
+              err.code === 'NETWORK_ERROR' ||
+              err.message?.includes('Network Error')
+            ) {
+              console.log(
+                '⚠️ Network error during auth check, keeping user logged in'
+              );
+              const userData = JSON.parse(storedUserData);
+              setUser(userData);
+              setWallet({
+                publicKey: userData.walletPublicKey,
+                balance: 0,
+              });
+            } else {
+              // Authentication failed, clear everything
+              console.log('❌ Auth validation failed, clearing auth data');
+              logout();
+            }
           }
         } else {
-          console.log('ℹ️ No stored token found');
+          console.log('ℹ️ No stored auth data found');
         }
       } catch (err) {
         console.error('❌ Auth initialization error:', err);
-        logout();
+        // Don't logout on initialization errors - might be network issues
+        console.log('⚠️ Keeping user logged in despite initialization error');
       } finally {
         setIsLoading(false);
       }
