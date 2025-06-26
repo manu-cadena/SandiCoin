@@ -131,7 +131,7 @@ const SendTransactionForm: React.FC<SendTransactionFormProps> = ({
         console.log('✅ Transaction created successfully');
 
         // Create detailed success message
-        const transactionDetails = response.data.transaction;
+        const transactionDetails = response.data;
         setSuccess({
           amount: amount,
           recipient: formData.recipient,

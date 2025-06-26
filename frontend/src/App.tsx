@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import LoginForm from './components/LoginForm';
 import SendTransactionForm from './components/SendTransactionForm';
 import TransactionHistory from './components/TransactionHistory';
+import BlockchainExplorer from './components/BlockchainExplorer';
 import './App.css';
 
 // Main App Content (authenticated vs non-authenticated)
@@ -12,7 +13,9 @@ const AppContent: React.FC = () => {
 
   // Modal state
   const [showSendModal, setShowSendModal] = useState(false);
-  const [showTransactionHistoryModal, setShowTransactionHistoryModal] = useState(false);
+  const [showTransactionHistoryModal, setShowTransactionHistoryModal] =
+    useState(false);
+  const [showBlockchainExplorer, setShowBlockchainExplorer] = useState(false);
   const [successData, setSuccessData] = useState<{
     amount: number;
     recipient: string;
@@ -149,7 +152,6 @@ const AppContent: React.FC = () => {
                 </p>
               </div>
             </div>
-
           </div>
 
           {/* Quick Actions */}
@@ -161,12 +163,17 @@ const AppContent: React.FC = () => {
                 onClick={() => setShowSendModal(true)}>
                 💸 Send Coins
               </button>
-              <button 
+              <button
                 className='btn btn-outline'
                 onClick={() => setShowTransactionHistoryModal(true)}>
                 📊 View Transactions
               </button>
-              <button className='btn btn-outline'>⛓️ Explore Blockchain</button>
+              <button
+                onClick={() => setShowBlockchainExplorer(true)}
+                className='btn btn-primary'
+                style={{ backgroundColor: 'var(--sandicoin-primary)' }}>
+                🔗 Explore Blockchain
+              </button>
               <button className='btn btn-outline'>⛏️ Mine Block</button>
             </div>
           </div>
@@ -217,7 +224,9 @@ const AppContent: React.FC = () => {
               boxShadow:
                 '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
             }}>
-            <TransactionHistory onClose={() => setShowTransactionHistoryModal(false)} />
+            <TransactionHistory
+              onClose={() => setShowTransactionHistoryModal(false)}
+            />
           </div>
         </div>
       )}
@@ -262,6 +271,46 @@ const AppContent: React.FC = () => {
                 setSuccessData(data || null);
               }}
               onCancel={() => setShowSendModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {showBlockchainExplorer && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={(e) => {
+            // Close modal when clicking backdrop
+            if (e.target === e.currentTarget) {
+              setShowBlockchainExplorer(false);
+            }
+          }}>
+          <div
+            style={{
+              backgroundColor: 'var(--sandicoin-card)',
+              borderRadius: '12px',
+              padding: 0,
+              maxWidth: '95vw',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              boxShadow:
+                '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }}>
+            <BlockchainExplorer
+              onClose={() => setShowBlockchainExplorer(false)}
             />
           </div>
         </div>
