@@ -52,12 +52,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   return (
     <div className='card' style={{ maxWidth: '400px', margin: '0 auto' }}>
       <div className='text-center mb-6'>
-        <h1
-          className='text-3xl font-bold'
-          style={{ color: 'var(--sandicoin-primary)' }}>
+        <h1 className='text-3xl font-bold' style={{ color: '#c2410c' }}>
           🪙 SandiCoin
         </h1>
-        <p className='text-lg' style={{ color: 'var(--sandicoin-secondary)' }}>
+        <p className='text-lg' style={{ color: '#374151' }}>
           Sign in to your cryptocurrency wallet
         </p>
       </div>
@@ -67,8 +65,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           className='card mb-4'
           style={{
             backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: 'var(--sandicoin-error)',
+            border: '2px solid #dc2626',
+            color: '#991b1b',
           }}>
           <strong>Login Failed:</strong> {error}
         </div>
@@ -159,7 +157,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
 
       {onSwitchToRegister && (
         <div className='text-center mt-6'>
-          <p style={{ color: 'var(--sandicoin-secondary)' }}>
+          <p style={{ color: '#374151' }}>
             Don't have an account?{' '}
             <button
               type='button'
@@ -168,7 +166,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--sandicoin-primary)',
+                color: '#c2410c',
                 textDecoration: 'underline',
                 cursor: 'pointer',
                 padding: 0,
@@ -182,7 +180,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       )}
 
       <div className='text-center mt-4'>
-        <small style={{ color: 'var(--sandicoin-secondary)' }}>
+        <small style={{ color: '#374151' }}>
           🔒 Your wallet is secured with industry-standard encryption
         </small>
       </div>
