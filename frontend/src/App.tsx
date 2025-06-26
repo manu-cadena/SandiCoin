@@ -4,6 +4,7 @@ import LoginForm from './components/LoginForm';
 import SendTransactionForm from './components/SendTransactionForm';
 import TransactionHistory from './components/TransactionHistory';
 import BlockchainExplorer from './components/BlockchainExplorer';
+import MiningInterface from './components/MiningInterface';
 import './App.css';
 
 // Main App Content (authenticated vs non-authenticated)
@@ -11,11 +12,12 @@ const AppContent: React.FC = () => {
   const { user, wallet, isAuthenticated, isLoading, logout, refreshUserData } =
     useAuth();
 
-  // Modal state
+  // Modal state - ADD THE MISSING STATE HERE
   const [showSendModal, setShowSendModal] = useState(false);
   const [showTransactionHistoryModal, setShowTransactionHistoryModal] =
     useState(false);
   const [showBlockchainExplorer, setShowBlockchainExplorer] = useState(false);
+  const [showMiningInterface, setShowMiningInterface] = useState(false); // <-- THIS WAS MISSING!
   const [successData, setSuccessData] = useState<{
     amount: number;
     recipient: string;
@@ -174,7 +176,12 @@ const AppContent: React.FC = () => {
                 style={{ backgroundColor: 'var(--sandicoin-primary)' }}>
                 🔗 Explore Blockchain
               </button>
-              <button className='btn btn-outline'>⛏️ Mine Block</button>
+              <button
+                onClick={() => setShowMiningInterface(true)}
+                className='btn btn-primary'
+                style={{ backgroundColor: 'var(--sandicoin-warning)' }}>
+                ⛏️ Mine Block
+              </button>
             </div>
           </div>
 
@@ -276,6 +283,7 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
+      {/* Blockchain Explorer Modal */}
       {showBlockchainExplorer && (
         <div
           style={{
@@ -312,6 +320,45 @@ const AppContent: React.FC = () => {
             <BlockchainExplorer
               onClose={() => setShowBlockchainExplorer(false)}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Mining Interface Modal */}
+      {showMiningInterface && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={(e) => {
+            // Close modal when clicking backdrop
+            if (e.target === e.currentTarget) {
+              setShowMiningInterface(false);
+            }
+          }}>
+          <div
+            style={{
+              backgroundColor: 'var(--sandicoin-card)',
+              borderRadius: '12px',
+              padding: 0,
+              maxWidth: '95vw',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              boxShadow:
+                '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }}>
+            <MiningInterface onClose={() => setShowMiningInterface(false)} />
           </div>
         </div>
       )}
