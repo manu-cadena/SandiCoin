@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
 import AuthService from '../services/authService';
 import { logger } from '../utils/logger';
 
@@ -16,7 +17,18 @@ export const register = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Validate request data
+    // Check express-validator results
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+      return;
+    }
+
+    // Additional custom validation from AuthService
     const validationErrors = AuthService.validateRegistrationData(req.body);
     if (validationErrors.length > 0) {
       res.status(400).json({
@@ -71,7 +83,18 @@ export const login = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Validate request data
+    // Check express-validator results
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+      return;
+    }
+
+    // Additional custom validation from AuthService
     const validationErrors = AuthService.validateLoginData(req.body);
     if (validationErrors.length > 0) {
       res.status(400).json({

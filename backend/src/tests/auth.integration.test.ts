@@ -84,7 +84,14 @@ describe('Authentication Integration Tests', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('Validation failed');
-      expect(response.body.errors).toContain('Last name is required');
+      expect(response.body.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'lastName',
+            msg: expect.stringContaining('Last name')
+          })
+        ])
+      );
     });
   });
 
