@@ -1,146 +1,112 @@
-# 🪙 SandiCoin - Full-Stack Cryptocurrency Application
+# 🪙 SandiCoin - Cryptocurrency with Blockchain Network
 
-A complete cryptocurrency implementation with blockchain, mining, P2P networking, and a modern React frontend.
+Complete cryptocurrency implementation with blockchain, P2P networking, transaction validation, and mining system.
 
-## 🌟 Project Structure
-
-```
-SandiCoin/
-├── backend/           # Node.js + TypeScript cryptocurrency backend
-│   ├── API Server     # REST endpoints for transactions, mining, blockchain
-│   ├── P2P Network    # WebSocket-based multi-node synchronization
-│   ├── JWT Auth       # User authentication and authorization
-│   └── MongoDB        # User data and persistence
-├── frontend/          # React + TypeScript + Vite frontend
-│   ├── Authentication # Login/register interface
-│   ├── Transactions   # Send coins and view history
-│   ├── Blockchain     # Explore blocks and network stats
-│   └── Mining         # Mine new blocks interface
-└── README.md         # This file
-```
-
-## 🚀 Quick Start
+## 🚀 Quick Start for Testing
 
 ### Prerequisites
-
 - Node.js 18+
-- MongoDB running on localhost:27017
-- npm or yarn
+- MongoDB running on `localhost:27017`
+- Two terminal windows
 
-### Backend Setup
+### Start the Application
 
+**Terminal 1 - Backend:**
 ```bash
 cd backend
 npm install
-cp .env.example .env
-# Edit .env with your configuration
+cp .env.example .env  # Copy environment configuration
 npm run dev
 ```
 
-### Frontend Setup
-
+**Terminal 2 - Frontend:**
 ```bash
-cd frontend
+cd frontend  
 npm install
 npm run dev
 ```
 
-## 🎯 Features
+**Access:** Open `http://localhost:5173` in your browser
 
-### ✅ Backend (Completed)
+## 🎯 Assignment Requirements ✅
 
-- **Blockchain Core**: Bitcoin-style ECDSA addresses and signatures
-- **P2P Network**: Multi-node synchronization with WebSockets
-- **Mining System**: Proof-of-work with adjustable difficulty
-- **Transaction Pool**: Mempool with validation and broadcasting
-- **JWT Authentication**: Secure user registration and login
-- **MongoDB Integration**: User data persistence
-- **67 Passing Tests**: Comprehensive test coverage
+### **Blockchain & Cryptocurrency**
+- ✅ Complete blockchain with transaction validation
+- ✅ Transaction pool for pending transactions  
+- ✅ Mining with reward transactions
+- ✅ Proof-of-work consensus mechanism
 
-### 🚧 Frontend (In Development)
+### **P2P Network** 
+- ✅ Multi-node support (WebSocket-based)
+- ✅ Automatic blockchain synchronization
+- ✅ Transaction broadcasting across nodes
 
-- **React + TypeScript**: Modern frontend framework
-- **Authentication UI**: Login and registration forms
-- **Dashboard**: Wallet balance and transaction overview
-- **Transaction Interface**: Send coins between users
-- **Blockchain Explorer**: View blocks and network statistics
-- **Mining Interface**: Trigger block mining
-- **Real-time Updates**: Live network synchronization
+### **Database Integration**
+- ✅ MongoDB for blockchain, blocks, transactions, and users
+- ✅ Persistent storage with automatic loading
+
+### **Security (JWT Authentication)**
+- ✅ User registration and login required
+- ✅ JWT token validation for API access
+- ✅ Role-based access control
+- ✅ Protection against NoSQL injection, XSS, DDoS
+
+### **React Frontend Client**
+- ✅ User registration and authentication
+- ✅ Create new transactions (send coins)
+- ✅ View transaction history
+- ✅ Browse blockchain and blocks
+- ✅ Mine new blocks interface
+
+### **TDD & Best Practices** 
+- ✅ 67 passing tests for transaction handling
+- ✅ Clean Code, SOC, MVC architecture
+- ✅ TypeScript for type safety
+
+## 🧪 Testing Features
+
+### 1. **Register & Login**
+- Create new account with email/password
+- Login receives JWT token for API access
+
+### 2. **Send Transactions**
+- Send coins to other users (by email or wallet address)
+- Transactions added to pool, confirmed when mined
+
+### 3. **Mine Blocks**
+- Click "Mine Block" to process pending transactions
+- Receive mining reward (50 SandiCoins)
+
+### 4. **Multi-Node Network**
+```bash
+# Start multiple backend nodes
+cd backend && PORT=3001 npm run dev  # Node 1
+cd backend && PORT=3002 npm run dev  # Node 2
+cd backend && PORT=3003 npm run dev  # Node 3
+```
+
+### 5. **View Blockchain**
+- Explore all blocks with transactions
+- View network statistics and node information
 
 ## 🛠️ Technology Stack
 
-### Backend
+- **Backend**: Node.js, TypeScript, Express, MongoDB, WebSockets, JWT
+- **Frontend**: React, TypeScript, Vite, Axios
+- **Testing**: Vitest (67 tests)
+- **Security**: Input validation, CORS, rate limiting, sanitization
 
-- **Runtime**: Node.js + TypeScript
-- **Framework**: Express.js
-- **Database**: MongoDB + Mongoose
-- **Authentication**: JWT tokens
-- **Cryptography**: Node.js crypto (secp256k1, SHA-256)
-- **Networking**: WebSocket (ws)
-- **Testing**: Vitest
+## 📊 API Endpoints
 
-### Frontend
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login  
+- `POST /api/transactions` - Create transaction
+- `GET /api/transactions` - View user transactions
+- `POST /api/mining/mine` - Mine new block
+- `GET /api/blockchain` - Get full blockchain
 
-- **Framework**: React 18 + TypeScript
-- **Build Tool**: Vite
-- **Styling**: CSS
-- **HTTP Client**: Axios
-- **Routing**: React Router
+---
 
-## 📚 API Documentation
-
-The backend provides comprehensive REST endpoints:
-
-- **Authentication**: `/api/auth/*` - Register, login, token management
-- **Transactions**: `/api/transactions/*` - Create, view, validate transactions
-- **Mining**: `/api/mining/*` - Mine blocks, view pending transactions
-- **Blockchain**: `/api/blockchain/*` - View blocks, network statistics
-- **Network**: `/api/network/*` - P2P network information
-
-## 🧪 Development
-
-### Running Tests
-
-```bash
-# Backend tests
-cd backend
-npm test
-
-# Frontend tests (when implemented)
-cd frontend
-npm test
-```
-
-### Multi-Node Testing
-
-```bash
-# Terminal 1 - Node 1
-cd backend && npm run dev
-
-# Terminal 2 - Node 2
-cd backend && npm run dev
-
-# Terminal 3 - Node 3
-cd backend && npm run dev
-```
-
-## 📄 Course Requirements
-
-This project fulfills all requirements for the Backend Development course:
-
-- ✅ **Blockchain Implementation**: Complete cryptocurrency with transactions
-- ✅ **P2P Network**: Multi-node synchronization with WebSockets
-- ✅ **Database Integration**: MongoDB for user data
-- ✅ **JWT Authentication**: Secure user registration and login
-- ✅ **TDD Implementation**: 67 passing tests
-- ✅ **Security**: Protection against NoSQL injection, XSS, DDoS
-- ✅ **Frontend**: React application for user interaction
-- ✅ **Clean Code**: MVC architecture, SOC principles
-
-## 👨‍💻 Author
-
-Built by a blockchain development student as part of a backend development course.
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
+**Assignment**: Kryptovaluta och nätverk - Backend Development Course  
+**Author**: Manuel Lopez  
+**Features**: All G and VG requirements implemented ✅
