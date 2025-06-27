@@ -4,6 +4,7 @@ import type {
   InternalAxiosRequestConfig,
   AxiosResponse,
 } from 'axios';
+import { handleApiError } from '../types/errors';
 
 // Types for API responses
 export interface ApiResponse<T = unknown> {
@@ -23,6 +24,7 @@ export interface RegisterRequest {
   lastName: string;
   email: string;
   password: string;
+  role: 'user' | 'miner';
 }
 
 export interface AuthResponse {
@@ -93,6 +95,8 @@ export interface NetworkStats {
 class ApiService {
   private api: AxiosInstance;
   private baseURL: string;
+  private maxRetries: number = 3;
+  private retryDelay: number = 1000; // 1 second
 
   constructor() {
     // Your SandiCoin backend URL - configurable for different environments
@@ -140,6 +144,33 @@ class ApiService {
     );
   }
 
+  // ===== RETRY LOGIC =====
+
+  private async retryRequest<T>(
+    requestFn: () => Promise<T>,
+    retries: number = this.maxRetries
+  ): Promise<T> {
+    try {
+      return await requestFn();
+    } catch (error) {
+      // Don't retry authentication errors or client errors (4xx)
+      if (error instanceof Error) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status && axiosError.response.status >= 400 && axiosError.response.status < 500) {
+          throw handleApiError(error);
+        }
+      }
+
+      if (retries > 0) {
+        console.log(`Request failed, retrying in ${this.retryDelay}ms... (${retries} retries left)`);
+        await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+        return this.retryRequest(requestFn, retries - 1);
+      }
+
+      throw handleApiError(error);
+    }
+  }
+
   // ===== AUTHENTICATION METHODS =====
 
   async register(
@@ -173,9 +204,11 @@ class ApiService {
     return response.data;
   }
 
-  async getWalletBalance(): Promise<ApiResponse<{ balance: number }>> {
-    const response = await this.api.get('/transactions/wallet/balance');
-    return response.data;
+  async getWalletBalance(): Promise<ApiResponse<{ balance: number; address?: string }>> {
+    return this.retryRequest(async () => {
+      const response = await this.api.get('/transactions/wallet/balance');
+      return response.data;
+    });
   }
 
   async getPendingTransactions(): Promise<ApiResponse<Transaction[]>> {
@@ -186,13 +219,17 @@ class ApiService {
   // ===== BLOCKCHAIN METHODS =====
 
   async getBlockchain(): Promise<ApiResponse<Block[]>> {
-    const response = await this.api.get('/blockchain');
-    return response.data;
+    return this.retryRequest(async () => {
+      const response = await this.api.get('/blockchain');
+      return response.data;
+    });
   }
 
   async getBlockchainStats(): Promise<ApiResponse<BlockchainStats>> {
-    const response = await this.api.get('/blockchain/stats');
-    return response.data;
+    return this.retryRequest(async () => {
+      const response = await this.api.get('/blockchain/stats');
+      return response.data;
+    });
   }
 
   // ===== MINING METHODS =====

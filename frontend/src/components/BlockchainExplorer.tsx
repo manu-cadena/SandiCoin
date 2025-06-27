@@ -38,8 +38,7 @@ interface BlockchainExplorerProps {
   onClose?: () => void;
 }
 
-const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
-  const { user } = useAuth();
+const BlockchainExplorer: React.FC<BlockchainExplorerProps> = () => {
 
   // State management
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -662,7 +661,7 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
                                     : 'Recipient'}
                                 </span>
                                 <span className='text-lg font-bold text-green-600'>
-                                  {amount} SandiCoins
+                                  {Number(amount)} SandiCoins
                                 </span>
                               </div>
                               {displayFullAddress(address)}
@@ -705,7 +704,6 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
       {/* Header */}
       <div className='flex justify-between items-center p-4 border-b'>
         <div className='flex items-center gap-4'>
-          <h2 className='text-xl font-bold'>🔗 Blockchain Explorer</h2>
           {/* Navigation */}
           <div className='flex gap-2'>
             <button
@@ -741,11 +739,6 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
             className='btn btn-secondary text-sm'>
             🔄 Refresh
           </button>
-          {onClose && (
-            <button onClick={onClose} className='btn btn-secondary'>
-              ✕
-            </button>
-          )}
         </div>
       </div>
 

@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 // Types for registration form
+type UserRole = 'user' | 'miner';
+
 interface RegisterFormData {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
-  role: 'user' | 'miner';
+  role: UserRole;
 }
 
 interface RegisterFormProps {

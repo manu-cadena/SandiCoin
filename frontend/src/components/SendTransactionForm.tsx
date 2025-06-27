@@ -186,24 +186,6 @@ const SendTransactionForm: React.FC<SendTransactionFormProps> = ({
 
   return (
     <div className='card'>
-      <div className='flex items-center justify-between mb-6'>
-        <h2 className='text-xl font-bold'>💸 Send SandiCoins</h2>
-        {onCancel && (
-          <button
-            onClick={onCancel}
-            className='btn'
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--sandicoin-secondary)',
-              fontSize: '24px',
-              padding: '4px 8px',
-              cursor: 'pointer',
-            }}>
-            ✕
-          </button>
-        )}
-      </div>
 
       {/* Balance Display */}
       <div className='card mb-4' style={{ backgroundColor: '#f0fdf4' }}>

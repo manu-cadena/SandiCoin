@@ -5,6 +5,8 @@ import SendTransactionForm from './components/SendTransactionForm';
 import TransactionHistory from './components/TransactionHistory';
 import BlockchainExplorer from './components/BlockchainExplorer';
 import MiningInterface from './components/MiningInterface';
+import Modal from './components/Modal';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 // Main App Content (authenticated vs non-authenticated)
@@ -198,208 +200,61 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* Transaction History Modal */}
-      {showTransactionHistoryModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={(e) => {
-            // Close modal when clicking backdrop
-            if (e.target === e.currentTarget) {
-              setShowTransactionHistoryModal(false);
-            }
-          }}>
-          <div
-            style={{
-              backgroundColor: 'var(--sandicoin-card)',
-              borderRadius: '12px',
-              padding: 0,
-              maxWidth: '90vw',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow:
-                '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            }}>
-            <TransactionHistory
-              onClose={() => setShowTransactionHistoryModal(false)}
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showTransactionHistoryModal}
+        onClose={() => setShowTransactionHistoryModal(false)}
+        title="📊 Transaction History"
+        maxWidth="90vw">
+        <TransactionHistory />
+      </Modal>
 
       {/* Send Transaction Modal */}
-      {showSendModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
+      <Modal
+        isOpen={showSendModal}
+        onClose={() => setShowSendModal(false)}
+        title="💸 Send SandiCoins"
+        maxWidth="500px">
+        <SendTransactionForm
+          onTransactionCreated={(data) => {
+            setShowSendModal(false);
+            setSuccessData(data || null);
           }}
-          onClick={(e) => {
-            // Close modal when clicking backdrop
-            if (e.target === e.currentTarget) {
-              setShowSendModal(false);
-            }
-          }}>
-          <div
-            style={{
-              backgroundColor: 'var(--sandicoin-card)',
-              borderRadius: '12px',
-              padding: 0,
-              maxWidth: '500px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow:
-                '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            }}>
-            <SendTransactionForm
-              onTransactionCreated={(data) => {
-                setShowSendModal(false);
-                setSuccessData(data || null);
-              }}
-              onCancel={() => setShowSendModal(false)}
-            />
-          </div>
-        </div>
-      )}
+          onCancel={() => setShowSendModal(false)}
+        />
+      </Modal>
 
       {/* Blockchain Explorer Modal */}
-      {showBlockchainExplorer && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={(e) => {
-            // Close modal when clicking backdrop
-            if (e.target === e.currentTarget) {
-              setShowBlockchainExplorer(false);
-            }
-          }}>
-          <div
-            style={{
-              backgroundColor: 'var(--sandicoin-card)',
-              borderRadius: '12px',
-              padding: 0,
-              maxWidth: '95vw',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow:
-                '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            }}>
-            <BlockchainExplorer
-              onClose={() => setShowBlockchainExplorer(false)}
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showBlockchainExplorer}
+        onClose={() => setShowBlockchainExplorer(false)}
+        title="🔗 Blockchain Explorer"
+        maxWidth="95vw">
+        <BlockchainExplorer />
+      </Modal>
 
       {/* Mining Interface Modal */}
-      {showMiningInterface && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={(e) => {
-            // Close modal when clicking backdrop
-            if (e.target === e.currentTarget) {
-              setShowMiningInterface(false);
-            }
-          }}>
-          <div
-            style={{
-              backgroundColor: 'var(--sandicoin-card)',
-              borderRadius: '12px',
-              padding: 0,
-              maxWidth: '95vw',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow:
-                '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            }}>
-            <MiningInterface onClose={() => setShowMiningInterface(false)} />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showMiningInterface}
+        onClose={() => setShowMiningInterface(false)}
+        title="⛏️ Mining Interface"
+        maxWidth="95vw">
+        <MiningInterface />
+      </Modal>
 
       {/* Success Popup */}
-      {successData && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2000,
-            padding: '20px',
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setSuccessData(null);
-            }
-          }}>
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              border: '3px solid #16a34a',
-              borderRadius: '16px',
-              padding: '24px',
-              maxWidth: '400px',
-              width: '100%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              animation: 'slideIn 0.3s ease-out',
-            }}>
-            <div className='flex justify-between items-start mb-4'>
-              <div className='flex items-center gap-3'>
+      <Modal
+        isOpen={!!successData}
+        onClose={() => setSuccessData(null)}
+        maxWidth="400px"
+        backgroundColor="#ffffff"
+        showCloseButton={false}>
+        {successData && (
+          <div style={{ border: '3px solid #16a34a', borderRadius: '16px', padding: '24px' }}>
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
                 <span style={{ fontSize: '28px' }}>🎉</span>
                 <h3
-                  className='text-xl font-bold'
+                  className="text-xl font-bold"
                   style={{ color: '#166534', margin: 0 }}>
                   Transaction Sent Successfully!
                 </h3>
@@ -418,27 +273,26 @@ const AppContent: React.FC = () => {
               </button>
             </div>
 
-            <div
-              style={{ fontSize: '15px', lineHeight: '1.6', color: '#374151' }}>
-              <div className='mb-2'>
+            <div style={{ fontSize: '15px', lineHeight: '1.6', color: '#374151' }}>
+              <div className="mb-2">
                 <strong style={{ color: '#166534' }}>Amount:</strong>{' '}
                 {successData.amount} SandiCoins
               </div>
-              <div className='mb-2'>
+              <div className="mb-2">
                 <strong style={{ color: '#166534' }}>To:</strong>{' '}
                 {successData.recipient}
               </div>
-              <div className='mb-2'>
+              <div className="mb-2">
                 <strong style={{ color: '#166534' }}>Type:</strong>{' '}
                 {successData.recipientType === 'email'
                   ? 'Email Address'
                   : 'Wallet Address'}
               </div>
-              <div className='mb-2'>
+              <div className="mb-2">
                 <strong style={{ color: '#166534' }}>Transaction ID:</strong>{' '}
                 {successData.transactionId}...
               </div>
-              <div className='mb-4'>
+              <div className="mb-4">
                 <strong style={{ color: '#166534' }}>Status:</strong>{' '}
                 <span style={{ color: '#b45309', fontWeight: 'bold' }}>
                   ⏳ Pending (awaiting mining)
@@ -447,14 +301,14 @@ const AppContent: React.FC = () => {
 
               <button
                 onClick={() => setSuccessData(null)}
-                className='btn btn-primary'
+                className="btn btn-primary"
                 style={{ width: '100%' }}>
                 ✅ Got it!
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };
@@ -462,9 +316,11 @@ const AppContent: React.FC = () => {
 // Main App Component with Provider
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

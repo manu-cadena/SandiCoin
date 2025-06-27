@@ -57,8 +57,8 @@ interface MiningInterfaceProps {
   onClose?: () => void;
 }
 
-const MiningInterface: React.FC<MiningInterfaceProps> = ({ onClose }) => {
-  const { user, wallet, refreshUserData } = useAuth();
+const MiningInterface: React.FC<MiningInterfaceProps> = () => {
+  const { refreshUserData } = useAuth();
 
   // State management
   const [miningStats, setMiningStats] = useState<MiningStats | null>(null);
@@ -199,7 +199,6 @@ const MiningInterface: React.FC<MiningInterfaceProps> = ({ onClose }) => {
       {/* Header */}
       <div className='flex justify-between items-center p-4 border-b'>
         <div className='flex items-center gap-4'>
-          <h2 className='text-xl font-bold'>⛏️ Mining Interface</h2>
           <div
             className={`px-3 py-1 rounded text-sm font-medium ${
               getMiningStatusColor() === 'green'
@@ -218,11 +217,6 @@ const MiningInterface: React.FC<MiningInterfaceProps> = ({ onClose }) => {
             disabled={isMining}>
             🔄 Refresh
           </button>
-          {onClose && (
-            <button onClick={onClose} className='btn btn-secondary'>
-              ✕
-            </button>
-          )}
         </div>
       </div>
 

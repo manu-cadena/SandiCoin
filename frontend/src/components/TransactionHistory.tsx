@@ -32,7 +32,7 @@ interface TransactionHistoryProps {
   onClose?: () => void;
 }
 
-const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
+const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
   const { user, wallet } = useAuth();
 
   // State
@@ -310,18 +310,6 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
 
   return (
     <div className='w-full p-6 bg-white rounded-lg'>
-      <div className='flex items-center justify-between mb-6'>
-        <h2 className='text-2xl font-bold text-gray-800'>
-          📊 Transaction History
-        </h2>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className='text-gray-500 hover:text-gray-700 text-2xl font-bold px-3 py-1 rounded hover:bg-gray-100 transition-colors'>
-            ✕
-          </button>
-        )}
-      </div>
 
       {/* Controls */}
       <div className='flex flex-col sm:flex-row gap-4 mb-6'>
