@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
-import LoginForm from './components/LoginForm';
+import AuthForm from './components/AuthForm';
 import SendTransactionForm from './components/SendTransactionForm';
 import TransactionHistory from './components/TransactionHistory';
 import BlockchainExplorer from './components/BlockchainExplorer';
@@ -44,7 +44,7 @@ const AppContent: React.FC = () => {
       <div
         className='min-h-screen flex items-center justify-center'
         style={{ backgroundColor: 'var(--sandicoin-bg)' }}>
-        <LoginForm />
+        <AuthForm /> {/* <- Change this line */}
       </div>
     );
   }
