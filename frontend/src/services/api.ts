@@ -97,10 +97,18 @@ class ApiService {
   private baseURL: string;
   private maxRetries: number = 3;
   private retryDelay: number = 1000; // 1 second
+  private availableNodes: string[] = [
+    'http://localhost:3000/api',
+    'http://localhost:3001/api', 
+    'http://localhost:3002/api',
+    'http://localhost:3003/api'
+  ];
+  private currentNodeIndex: number = 0;
 
   constructor() {
     // Your SandiCoin backend URL - configurable for different environments
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    // Support multiple nodes for failover resilience
+    this.baseURL = import.meta.env.VITE_API_URL || this.getAvailableNodeUrl();
 
     this.api = axios.create({
       baseURL: this.baseURL,
@@ -144,6 +152,46 @@ class ApiService {
     );
   }
 
+  // ===== NODE FAILOVER LOGIC =====
+
+  /**
+   * Get the next available node URL for failover
+   */
+  private getAvailableNodeUrl(): string {
+    return this.availableNodes[this.currentNodeIndex];
+  }
+
+  /**
+   * Switch to the next available node
+   */
+  private switchToNextNode(): void {
+    this.currentNodeIndex = (this.currentNodeIndex + 1) % this.availableNodes.length;
+    const newBaseURL = this.availableNodes[this.currentNodeIndex];
+    
+    console.log(`🔄 Switching to node: ${newBaseURL}`);
+    
+    // Update the axios instance with new base URL
+    this.api.defaults.baseURL = newBaseURL;
+    this.baseURL = newBaseURL;
+  }
+
+  /**
+   * Check if error indicates node is down and we should failover
+   */
+  private shouldFailover(error: unknown): boolean {
+    if (error instanceof Error) {
+      const axiosError = error as AxiosError;
+      // Failover on connection refused, timeout, or network errors
+      return axiosError.code === 'ECONNREFUSED' || 
+             axiosError.code === 'ETIMEDOUT' ||
+             axiosError.code === 'ERR_NETWORK' ||
+             axiosError.code === 'ERR_CONNECTION_REFUSED' ||
+             axiosError.message.includes('CONNECTION_REFUSED') ||
+             axiosError.message.includes('Network Error');
+    }
+    return false;
+  }
+
   // ===== RETRY LOGIC =====
 
   private async retryRequest<T>(
@@ -158,6 +206,18 @@ class ApiService {
         const axiosError = error as AxiosError;
         if (axiosError.response?.status && axiosError.response.status >= 400 && axiosError.response.status < 500) {
           throw handleApiError(error);
+        }
+      }
+
+      // Check if we should failover to next node
+      if (this.shouldFailover(error) && retries === this.maxRetries) {
+        console.log(`🔄 Node appears to be down, attempting failover...`);
+        this.switchToNextNode();
+        // Try with the new node immediately
+        try {
+          return await requestFn();
+        } catch (failoverError) {
+          console.log(`❌ Failover attempt failed, continuing with retry logic`);
         }
       }
 
@@ -301,6 +361,20 @@ class ApiService {
   isAuthenticated(): boolean {
     const token = this.getAuthToken();
     return !!token;
+  }
+
+  // ===== NODE STATUS METHODS =====
+
+  getCurrentNode(): string {
+    return this.baseURL;
+  }
+
+  getAvailableNodes(): string[] {
+    return [...this.availableNodes];
+  }
+
+  getCurrentNodeIndex(): number {
+    return this.currentNodeIndex;
   }
 }
 

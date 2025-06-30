@@ -47,50 +47,69 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
     const userEmail = user?.email || '';
     const userWalletAddress = wallet?.publicKey || '';
     
+    // The backend now provides userRole, actualAmount, and proper sender/recipient info
+    // Trust the backend data instead of re-calculating
+    const backendData = apiTx as any;
     
-    // Extract sender and recipient from the complex transaction structure
     let sender = '';
     let recipient = '';
     let actualAmount = 0;
     let userRole: 'sender' | 'recipient' = 'recipient';
 
-    // Check if transaction has the complex structure with input/outputMap
+    // Use backend-calculated values if available
+    if (backendData.userRole) {
+      userRole = backendData.userRole;
+    }
+    
+    if (backendData.actualAmount !== undefined) {
+      actualAmount = backendData.actualAmount;
+    } else {
+      actualAmount = apiTx.amount || 0;
+    }
+
+    // Extract sender and recipient information
     if ('input' in apiTx && 'outputMap' in apiTx) {
-      const txInput = (apiTx as any).input;
-      const txOutputMap = (apiTx as any).outputMap;
+      const txInput = backendData.input;
+      const txOutputMap = backendData.outputMap;
       
-      // Extract sender from input.address
+      // Debug: Log transaction details for multi-recipient transactions
+      if (userRole === 'sender') {
+        console.log('🔍 Processing sender transaction:', {
+          id: apiTx.id.substring(0, 8) + '...',
+          outputMap: Object.keys(txOutputMap),
+          amounts: Object.values(txOutputMap),
+          actualAmount: backendData.actualAmount
+        });
+      }
+      
+      // Sender is always from input.address
       sender = txInput?.address || '';
       
-      // For outputMap, find which addresses are recipients and amounts
-      const outputAddresses = Object.keys(txOutputMap || {});
-      const outputAmounts = Object.values(txOutputMap || {});
-      
-      
-      // Determine user role based on input address
-      if (sender === userWalletAddress || sender === userEmail) {
-        userRole = 'sender';
-        // For sender, calculate total amount sent (exclude change back to sender)
-        actualAmount = (apiTx as any).actualAmount || 0;
-        // Find the main recipient (usually the first non-sender address)
-        recipient = outputAddresses.find(addr => addr !== sender) || outputAddresses[0] || '';
-      } else if (userWalletAddress in txOutputMap) {
-        userRole = 'recipient';
-        // For recipient, get the amount sent to this user's address
-        actualAmount = txOutputMap[userWalletAddress] || 0;
-        recipient = userWalletAddress;
+      if (userRole === 'sender') {
+        // For senders, show all recipients (excluding sender's change address)
+        const outputAddresses = Object.keys(txOutputMap || {});
+        const recipients = outputAddresses.filter(addr => addr !== sender);
+        
+        if (recipients.length === 1) {
+          recipient = recipients[0];
+        } else if (recipients.length > 1) {
+          recipient = `${recipients.length} recipients: ${recipients.join(', ')}`;
+        } else {
+          recipient = outputAddresses[0] || '';
+        }
       } else {
-        userRole = 'recipient';
-        actualAmount = (apiTx as any).actualAmount || 0;
+        // For recipients, the user's address is the recipient
         recipient = userWalletAddress;
+        sender = sender || backendData.sender || '';
       }
     } else {
       // Fallback for simple transaction structure
       sender = apiTx.sender || '';
       recipient = apiTx.recipient || '';
-      actualAmount = apiTx.amount || 0;
       
-      userRole = (sender === userEmail || sender === userWalletAddress) ? 'sender' : 'recipient';
+      if (!backendData.userRole) {
+        userRole = (sender === userEmail || sender === userWalletAddress) ? 'sender' : 'recipient';
+      }
     }
 
     const amountType = userRole === 'sender' ? 'sent' : 'received';
@@ -126,18 +145,12 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
 
       const response = await apiService.getUserTransactions();
 
-      // 🧪 COMPREHENSIVE API RESPONSE DEBUGGING
-      console.log('🌐 COMPLETE API RESPONSE DEBUG:');
-      console.log('  - Response success:', response.success);
-      console.log('  - Response keys:', Object.keys(response));
-      console.log('  - Response.data type:', typeof response.data);
-      console.log('  - Response.data is array?', Array.isArray(response.data));
-      console.log('  - Raw response.data:', JSON.stringify(response.data, null, 2));
-      
-      if (response.data && typeof response.data === 'object') {
-        console.log('  - Response.data keys:', Object.keys(response.data));
-        console.log('  - Response.data values preview:', Object.values(response.data));
-      }
+      // Debug API response structure
+      console.log('📊 API Response:', {
+        success: response.success,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data)
+      });
 
       if (response.success && response.data) {
 
@@ -156,11 +169,10 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
         };
 
         if (hasTransactionGroups(response.data)) {
-          console.log('📊 Found confirmed/pending structure');
-          console.log('Confirmed transactions count:', response.data.confirmed.length);
-          console.log('Pending transactions count:', response.data.pending.length);
-          console.log('Confirmed transactions:', response.data.confirmed);
-          console.log('Pending transactions:', response.data.pending);
+          console.log('📊 Found transactions:', {
+            confirmed: response.data.confirmed.length,
+            pending: response.data.pending.length
+          });
 
           // Process confirmed transactions
           const confirmedTxs = response.data.confirmed.map((apiTx: ApiTransaction) => {
@@ -181,8 +193,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
           allTransactions = [...confirmedTxs, ...pendingTxs];
           
         } else if (Array.isArray(response.data)) {
-          console.log('📊 Found array structure');
-          console.log('Transaction array:', response.data);
+          console.log('📊 Found array structure with', response.data.length, 'transactions');
 
           // Response is a simple array of transactions
           allTransactions = response.data.map((apiTx: ApiTransaction) =>
@@ -199,19 +210,14 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
         setTransactions(allTransactions);
         console.log(`✅ Loaded ${allTransactions.length} transactions`);
         
-        // 🧪 DEBUG: Show final processed transactions
-        console.log('🎯 FINAL PROCESSED TRANSACTIONS:');
-        allTransactions.forEach((tx, index) => {
-          console.log(`Transaction ${index + 1}:`, {
-            id: tx.id.substring(0, 8) + '...',
-            userRole: tx.userRole,
-            sender: tx.sender.substring(0, 20) + '...',
-            recipient: tx.recipient.substring(0, 20) + '...',
-            actualAmount: tx.actualAmount,
-            status: tx.status,
-            timestamp: tx.timestamp ? new Date(tx.timestamp).toLocaleString() : 'Invalid'
+        // Debug final transactions
+        if (allTransactions.length > 0) {
+          console.log('🎯 Transaction summary:', {
+            total: allTransactions.length,
+            sent: allTransactions.filter(tx => tx.userRole === 'sender').length,
+            received: allTransactions.filter(tx => tx.userRole === 'recipient').length
           });
-        });
+        }
       }
     } catch (err: unknown) {
       console.error('❌ Failed to fetch transactions:', err);

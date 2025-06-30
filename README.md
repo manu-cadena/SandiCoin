@@ -31,6 +31,24 @@ npm run dev
 
 **Access:** Open `http://localhost:5173` in your browser
 
+### 🛠️ Development Commands
+
+```bash
+# Start a new node (auto-assigns ports)
+npm run dev
+
+# Start specific nodes
+npm run dev:node1  # Port 3000
+npm run dev:node2  # Port 3001 
+npm run dev:node3  # Port 3002
+npm run dev:node4  # Port 3003
+
+# Network management
+npm run dev:status  # Check running nodes
+npm run dev:kill    # Kill all nodes
+npm run dev:reset   # Kill all nodes and reset network
+```
+
 ## 🎯 Assignment Requirements ✅
 
 ### **Blockchain & Cryptocurrency**

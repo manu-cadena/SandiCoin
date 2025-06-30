@@ -236,11 +236,12 @@ export const getTransactions = async (
           userRole = 'sender';
         }
 
-        // Check if user was recipient (only if not already sender)
+        // Check if user was recipient (even if they were also the sender)
+        // Note: We prioritize 'sender' role for display, but still mark as user transaction
         if (
           transaction.outputMap &&
           transaction.outputMap[userAddress] &&
-          userRole !== 'sender'
+          userRole === ''
         ) {
           isUserTransaction = true;
           userRole = 'recipient';

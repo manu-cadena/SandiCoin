@@ -417,8 +417,8 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
                         : 'Local only'}
                     </div>
                     {result.block?.hash && (
-                      <div className='font-mono text-xs mt-2'>
-                        Hash: {result.block.hash.substring(0, 32)}...
+                      <div className='font-mono text-xs mt-2 break-all'>
+                        Hash: {result.block.hash}
                       </div>
                     )}
                   </div>

@@ -38,7 +38,7 @@ interface BlockchainExplorerProps {
   onClose?: () => void;
 }
 
-const BlockchainExplorer: React.FC<BlockchainExplorerProps> = () => {
+const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
 
   // State management
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -445,9 +445,8 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = () => {
                   </div>
                 </div>
                 <div className='text-right'>
-                  <div className='font-mono text-sm'>
-                    {block.hash.substring(0, 16)}...
-                    {block.hash.substring(block.hash.length - 8)}
+                  <div className='font-mono text-sm break-all'>
+                    {block.hash}
                   </div>
                   <div className='text-xs text-gray-500'>
                     {block.data?.length || 0} transactions
@@ -501,13 +500,11 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = () => {
                       {formatTimestamp(block.timestamp)}
                     </span>
                   </div>
-                  <div className='font-mono text-sm text-gray-600 mb-1'>
-                    Hash: {block.hash.substring(0, 20)}...
-                    {block.hash.substring(block.hash.length - 12)}
+                  <div className='font-mono text-xs text-gray-600 mb-1 break-all'>
+                    Hash: {block.hash}
                   </div>
-                  <div className='font-mono text-sm text-gray-600'>
-                    Previous: {block.lastHash.substring(0, 20)}...
-                    {block.lastHash.substring(block.lastHash.length - 12)}
+                  <div className='font-mono text-xs text-gray-600 break-all'>
+                    Previous: {block.lastHash}
                   </div>
                 </div>
                 <div className='text-right'>
