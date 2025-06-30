@@ -58,10 +58,33 @@ function savePortState(state) {
   fs.writeFileSync(PORT_STATE_FILE, JSON.stringify(state, null, 2));
 }
 
-// Get existing peer nodes for connection
+// Get existing peer nodes for connection using mesh topology
 function getPeerNodes(currentSocketPort, allNodes) {
-  return allNodes
-    .filter(node => node.socketPort !== currentSocketPort)
+  const otherNodes = allNodes.filter(node => node.socketPort !== currentSocketPort);
+  
+  // If no other nodes exist, return empty
+  if (otherNodes.length === 0) return '';
+  
+  // Mesh topology: each node connects to 2 peers (or all available if less than 2)
+  // This creates redundant paths without full connectivity
+  const maxConnections = Math.min(2, otherNodes.length);
+  
+  // Sort nodes by socket port for consistent peer selection
+  const sortedNodes = otherNodes.sort((a, b) => a.socketPort - b.socketPort);
+  
+  // Find current node index in the sorted list
+  const currentNodeIndex = allNodes
+    .sort((a, b) => a.socketPort - b.socketPort)
+    .findIndex(node => node.socketPort === currentSocketPort);
+  
+  // Select peers in a circular pattern to create mesh connectivity
+  const peers = [];
+  for (let i = 0; i < maxConnections; i++) {
+    const peerIndex = (currentNodeIndex + i + 1) % sortedNodes.length;
+    peers.push(sortedNodes[peerIndex]);
+  }
+  
+  return peers
     .map(node => `ws://localhost:${node.socketPort}`)
     .join(',');
 }

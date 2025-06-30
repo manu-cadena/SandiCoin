@@ -19,6 +19,10 @@ export class NetworkService {
   private transactionPool: TransactionPool;
   private nodes: WebSocket[] = [];
   private nodeId: string;
+  private reconnectAttempts: Map<string, number> = new Map();
+  private readonly maxReconnectAttempts = 5;
+  private readonly reconnectDelay = 5000; // 5 seconds
+  private maxAttemptsReached: Set<string> = new Set(); // Track peers that have reached max attempts
 
   constructor(blockchain: Blockchain, transactionPool: TransactionPool) {
     this.blockchain = blockchain;
@@ -76,35 +80,103 @@ export class NetworkService {
     );
 
     PEER_NODES.forEach((nodeUrl) => {
-      try {
-        const socket = new WebSocket(nodeUrl);
-
-        socket.on('open', () => {
-          logger.network(`✅ Connected to peer: ${nodeUrl}`);
-          this.connectNode(socket);
-
-          // Request initial sync when connecting to a peer
-          this.requestSync(socket);
-        });
-
-        socket.on('error', (error) => {
-          logger.warn(
-            `❌ Failed to connect to peer ${nodeUrl}:`,
-            error.message
-          );
-        });
-
-        // Connection timeout
-        setTimeout(() => {
-          if (socket.readyState === WebSocket.CONNECTING) {
-            socket.close();
-            logger.warn(`⏰ Connection timeout for peer: ${nodeUrl}`);
-          }
-        }, 5000);
-      } catch (error) {
-        logger.error(`Error connecting to ${nodeUrl}:`, error);
-      }
+      this.connectToPeer(nodeUrl);
     });
+  }
+
+  /**
+   * Schedule reconnection to a peer with exponential backoff
+   */
+  private scheduleReconnect(nodeUrl: string): void {
+    // Don't spam reconnection attempts for peers that have already reached max attempts
+    if (this.maxAttemptsReached.has(nodeUrl)) {
+      return;
+    }
+
+    const attempts = this.reconnectAttempts.get(nodeUrl) || 0;
+    
+    if (attempts >= this.maxReconnectAttempts) {
+      this.maxAttemptsReached.add(nodeUrl);
+      logger.network(`🔌 Peer ${this.getNodeIdentifier(nodeUrl)} appears to be offline (stopped attempting reconnection)`);
+      return;
+    }
+
+    const delay = this.reconnectDelay * Math.pow(2, attempts); // Exponential backoff
+    this.reconnectAttempts.set(nodeUrl, attempts + 1);
+
+    // Only log the first and last few attempts to reduce noise
+    if (attempts === 0) {
+      logger.network(`🔄 Peer ${this.getNodeIdentifier(nodeUrl)} disconnected, attempting to reconnect...`);
+    } else if (attempts >= this.maxReconnectAttempts - 2) {
+      logger.network(`🔄 Reconnection attempt ${attempts + 1}/${this.maxReconnectAttempts} for peer ${this.getNodeIdentifier(nodeUrl)} in ${Math.round(delay/1000)}s`);
+    }
+
+    setTimeout(() => {
+      this.connectToPeer(nodeUrl);
+    }, delay);
+  }
+
+  /**
+   * Get a friendly identifier for a node URL
+   */
+  private getNodeIdentifier(nodeUrl: string): string {
+    const match = nodeUrl.match(/:(\d+)$/);
+    return match ? `Node:${match[1]}` : nodeUrl;
+  }
+
+  /**
+   * Connect to a single peer
+   */
+  private connectToPeer(nodeUrl: string): void {
+    try {
+      const socket = new WebSocket(nodeUrl);
+
+      socket.on('open', () => {
+        const wasReconnecting = this.reconnectAttempts.has(nodeUrl) || this.maxAttemptsReached.has(nodeUrl);
+        
+        if (wasReconnecting) {
+          logger.network(`✅ Successfully reconnected to peer ${this.getNodeIdentifier(nodeUrl)}`);
+        } else {
+          logger.network(`✅ Connected to peer ${this.getNodeIdentifier(nodeUrl)}`);
+        }
+        
+        // Reset reconnection tracking on successful connection
+        this.reconnectAttempts.delete(nodeUrl);
+        this.maxAttemptsReached.delete(nodeUrl);
+        
+        this.connectNode(socket);
+        this.requestSync(socket);
+      });
+
+      socket.on('error', (error) => {
+        // Only log errors for first attempts or critical failures
+        const attempts = this.reconnectAttempts.get(nodeUrl) || 0;
+        if (attempts <= 1) {
+          logger.warn(`❌ Connection failed to peer ${this.getNodeIdentifier(nodeUrl)}: ${error.message}`);
+        }
+        this.scheduleReconnect(nodeUrl);
+      });
+
+      socket.on('close', () => {
+        // Only schedule reconnect, don't log every close event as it's noisy
+        this.scheduleReconnect(nodeUrl);
+      });
+
+      // Connection timeout
+      setTimeout(() => {
+        if (socket.readyState === WebSocket.CONNECTING) {
+          socket.close();
+          // Only log timeout for first few attempts to reduce noise
+          const attempts = this.reconnectAttempts.get(nodeUrl) || 0;
+          if (attempts <= 2) {
+            logger.warn(`⏰ Connection timeout for peer ${this.getNodeIdentifier(nodeUrl)}`);
+          }
+        }
+      }, 5000);
+    } catch (error) {
+      logger.error(`Error reconnecting to ${nodeUrl}:`, error);
+      this.scheduleReconnect(nodeUrl);
+    }
   }
 
   /**
@@ -450,34 +522,38 @@ export class NetworkService {
    * Get network statistics
    */
   getNetworkStats() {
-    // Calculate total network nodes
-    // This is a simple heuristic that works for the current star-like topology
-    // where the first node receives connections from all other nodes
+    // For mesh topology, calculate total nodes based on actual connections
     
-    let totalNetworkNodes;
+    const activeIncomingConnections = this.nodes.filter(
+      socket => socket.readyState === WebSocket.OPEN
+    ).length;
     
-    if (PEER_NODES.length === 0) {
-      // This is the first node (no outgoing connections)
-      // Total nodes = self + incoming connections
-      totalNetworkNodes = 1 + this.nodes.length;
-    } else {
-      // This node connects to others
-      // We need to calculate unique connections to avoid double counting
-      // In the current topology: total = 1 (self) + outgoing connections + any additional incoming
-      // But since each connection is bidirectional, we use the max to avoid double counting
-      const uniqueConnections = Math.max(PEER_NODES.length, this.nodes.length);
-      totalNetworkNodes = 1 + uniqueConnections;
-    }
+    const configuredOutgoingConnections = PEER_NODES.length;
+    
+    // Calculate total unique nodes more conservatively
+    // In a mesh network: self + directly connected peers
+    // This gives us the minimum guaranteed nodes in the network
+    const directlyConnectedNodes = activeIncomingConnections;
+    
+    // Conservative estimate: self + active connections
+    // This ensures we don't overcount disconnected nodes
+    const estimatedTotalNodes = 1 + directlyConnectedNodes;
     
     return {
       nodeId: this.nodeId,
-      connectedNodes: totalNetworkNodes,
-      directConnections: this.nodes.length, // Incoming connections
-      outgoingConnections: PEER_NODES.length, // Outgoing connections
+      connectedNodes: estimatedTotalNodes,
+      directConnections: activeIncomingConnections, // Active incoming connections
+      outgoingConnections: configuredOutgoingConnections, // Configured outgoing connections
       serverPort: SOCKET_PORT,
       peerNodes: PEER_NODES,
       chainLength: this.blockchain.getLength(),
       pendingTransactions: this.transactionPool.getTransactionCount(),
+      networkTopology: 'mesh', // Indicate this is a mesh network
+      debug: {
+        activeIncoming: activeIncomingConnections,
+        configuredOutgoing: configuredOutgoingConnections,
+        calculation: `1 (self) + ${directlyConnectedNodes} (connected) = ${estimatedTotalNodes}`
+      }
     };
   }
 
