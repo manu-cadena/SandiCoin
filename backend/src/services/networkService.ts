@@ -450,9 +450,30 @@ export class NetworkService {
    * Get network statistics
    */
   getNetworkStats() {
+    // Calculate total network nodes
+    // This is a simple heuristic that works for the current star-like topology
+    // where the first node receives connections from all other nodes
+    
+    let totalNetworkNodes;
+    
+    if (PEER_NODES.length === 0) {
+      // This is the first node (no outgoing connections)
+      // Total nodes = self + incoming connections
+      totalNetworkNodes = 1 + this.nodes.length;
+    } else {
+      // This node connects to others
+      // We need to calculate unique connections to avoid double counting
+      // In the current topology: total = 1 (self) + outgoing connections + any additional incoming
+      // But since each connection is bidirectional, we use the max to avoid double counting
+      const uniqueConnections = Math.max(PEER_NODES.length, this.nodes.length);
+      totalNetworkNodes = 1 + uniqueConnections;
+    }
+    
     return {
       nodeId: this.nodeId,
-      connectedNodes: this.nodes.length,
+      connectedNodes: totalNetworkNodes,
+      directConnections: this.nodes.length, // Incoming connections
+      outgoingConnections: PEER_NODES.length, // Outgoing connections
       serverPort: SOCKET_PORT,
       peerNodes: PEER_NODES,
       chainLength: this.blockchain.getLength(),
