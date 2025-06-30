@@ -300,8 +300,10 @@ class ApiService {
   }
 
   async getMiningStats(): Promise<ApiResponse<MiningStats>> {
-    const response = await this.api.get('/mining/stats');
-    return response.data;
+    return this.retryRequest(async () => {
+      const response = await this.api.get('/mining/stats');
+      return response.data;
+    });
   }
 
   // ===== NETWORK METHODS =====

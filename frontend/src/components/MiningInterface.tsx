@@ -83,18 +83,30 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
       console.log('⛏️ Fetching mining statistics...');
 
       const response = await apiService.getMiningStats();
-      console.log('📊 Mining stats received:', response.data);
+      console.log('📊 Mining stats received:', response);
+      console.log('📊 Mining stats data:', response.data);
 
       if (response.success && response.data) {
         setMiningStats(response.data);
         setLastRefreshTime(new Date());
         console.log('✅ Mining stats loaded successfully');
       } else {
-        throw new Error('Invalid mining stats response');
+        console.error('❌ Mining stats response invalid:', response);
+        throw new Error(response.message || 'Invalid mining stats response');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Failed to fetch mining stats:', err);
-      setError('Failed to load mining statistics. Please try again.');
+      let errorMessage = 'Failed to load mining statistics. Please try again.';
+      
+      if (err.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       if (!isMining) {
         setIsLoading(false);
