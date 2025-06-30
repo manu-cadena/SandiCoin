@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { handleApiError } from '../types/errors';
 import apiService from '../services/api';
 
 // Types based on your backend API structure
@@ -59,6 +61,7 @@ interface MiningInterfaceProps {
 
 const MiningInterface: React.FC<MiningInterfaceProps> = () => {
   const { refreshUserData } = useAuth();
+  const { showError } = useErrorHandler();
 
   // State management
   const [miningStats, setMiningStats] = useState<MiningStats | null>(null);
@@ -96,17 +99,13 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
       }
     } catch (err: any) {
       console.error('❌ Failed to fetch mining stats:', err);
-      let errorMessage = 'Failed to load mining statistics. Please try again.';
       
-      if (err.response?.status === 401) {
-        errorMessage = 'Authentication failed. Please log in again.';
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
+      // Use enhanced error handling
+      const apiError = handleApiError(err);
       
-      setError(errorMessage);
+      // Show both local error and global toast
+      setError(apiError.message);
+      showError(apiError.message, 'error');
     } finally {
       if (!isMining) {
         setIsLoading(false);
@@ -139,14 +138,12 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
     } catch (err: any) {
       console.error('❌ Mining failed:', err);
 
-      let errorMessage = 'Mining failed. Please try again.';
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      setError(errorMessage);
+      // Use enhanced error handling
+      const apiError = handleApiError(err);
+      
+      // Show both local error and global toast
+      setError(apiError.message);
+      showError(apiError.message, 'error');
     } finally {
       setIsMining(false);
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { ErrorProvider } from './hooks/useErrorHandler';
 import AuthForm from './components/AuthForm';
 import SendTransactionForm from './components/SendTransactionForm';
 import TransactionHistory from './components/TransactionHistory';
@@ -363,9 +364,11 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ErrorProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ErrorProvider>
     </ErrorBoundary>
   );
 };

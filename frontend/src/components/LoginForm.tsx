@@ -56,8 +56,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded text-red-700">
-          <strong>⚠️ Login Failed:</strong> {error}
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <span className="text-red-500 text-xl flex-shrink-0">⚠️</span>
+            <div>
+              <h3 className="text-red-800 font-semibold mb-1">Login Failed</h3>
+              <p className="text-red-700 text-sm">{error}</p>
+            </div>
+          </div>
         </div>
       )}
 

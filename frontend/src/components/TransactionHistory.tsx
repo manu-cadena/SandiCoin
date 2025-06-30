@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { handleApiError } from '../types/errors';
 import apiService from '../services/api';
 
 // API transaction structure (what the backend returns)
@@ -34,6 +36,7 @@ interface TransactionHistoryProps {
 
 const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
   const { user, wallet } = useAuth();
+  const { showError } = useErrorHandler();
 
   // State
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -222,18 +225,12 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
     } catch (err: unknown) {
       console.error('❌ Failed to fetch transactions:', err);
 
-      let errorMessage = 'Failed to load transaction history';
-
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      } else if (typeof err === 'object' && err !== null && 'response' in err) {
-        const axiosError = err as {
-          response?: { data?: { message?: string } };
-        };
-        errorMessage = axiosError.response?.data?.message || errorMessage;
-      }
-
-      setError(errorMessage);
+      // Use enhanced error handling
+      const apiError = handleApiError(err);
+      
+      // Show both local error and global toast
+      setError(apiError.message);
+      showError(apiError.message, 'error');
     } finally {
       setIsLoading(false);
     }

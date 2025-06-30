@@ -236,13 +236,23 @@ class ApiService {
   async register(
     userData: RegisterRequest
   ): Promise<ApiResponse<AuthResponse>> {
-    const response = await this.api.post('/auth/register', userData);
-    return response.data;
+    try {
+      const response = await this.api.post('/auth/register', userData);
+      return response.data;
+    } catch (error) {
+      // Don't retry authentication requests, just handle the error
+      throw handleApiError(error);
+    }
   }
 
   async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    const response = await this.api.post('/auth/login', credentials);
-    return response.data;
+    try {
+      const response = await this.api.post('/auth/login', credentials);
+      return response.data;
+    } catch (error) {
+      // Don't retry authentication requests, just handle the error
+      throw handleApiError(error);
+    }
   }
 
   async logout(): Promise<ApiResponse> {

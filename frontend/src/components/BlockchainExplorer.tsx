@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { handleApiError } from '../types/errors';
 import apiService from '../services/api';
 
 // Types based on your backend API structure
@@ -39,6 +41,7 @@ interface BlockchainExplorerProps {
 }
 
 const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
+  const { showError } = useErrorHandler();
 
   // State management
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -202,7 +205,13 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
       }
     } catch (err) {
       console.error('💥 Unexpected error fetching blockchain data:', err);
-      setError('An unexpected error occurred. Please try again.');
+      
+      // Use enhanced error handling
+      const apiError = handleApiError(err);
+      
+      // Show both local error and global toast
+      setError(apiError.message);
+      showError(apiError.message, 'error');
     } finally {
       setIsLoading(false);
     }

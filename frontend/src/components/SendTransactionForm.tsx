@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { handleApiError, isValidationError, isNetworkError } from '../types/errors';
 import apiService from '../services/api';
 
 interface SendTransactionFormProps {
@@ -18,6 +20,7 @@ const SendTransactionForm: React.FC<SendTransactionFormProps> = ({
   onCancel,
 }) => {
   const { wallet, refreshUserData } = useAuth();
+  const { showError } = useErrorHandler();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -163,20 +166,12 @@ const SendTransactionForm: React.FC<SendTransactionFormProps> = ({
     } catch (err: unknown) {
       console.error('❌ Transaction creation failed:', err);
 
-      let errorMessage = 'Transaction failed';
-
-      // Type-safe error handling
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      } else if (typeof err === 'object' && err !== null && 'response' in err) {
-        const axiosError = err as {
-          response?: { data?: { message?: string } };
-        };
-        errorMessage =
-          axiosError.response?.data?.message || 'Transaction failed';
-      }
-
-      setError(errorMessage);
+      // Use enhanced error handling
+      const apiError = handleApiError(err);
+      
+      // Show both local error and global toast for better visibility
+      setError(apiError.message);
+      showError(apiError.message, 'error');
     } finally {
       setIsLoading(false);
     }
