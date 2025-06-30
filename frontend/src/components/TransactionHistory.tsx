@@ -47,6 +47,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
     const userEmail = user?.email || '';
     const userWalletAddress = wallet?.publicKey || '';
     
+    
     // Extract sender and recipient from the complex transaction structure
     let sender = '';
     let recipient = '';
@@ -65,6 +66,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
       const outputAddresses = Object.keys(txOutputMap || {});
       const outputAmounts = Object.values(txOutputMap || {});
       
+      
       // Determine user role based on input address
       if (sender === userWalletAddress || sender === userEmail) {
         userRole = 'sender';
@@ -72,10 +74,14 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
         actualAmount = (apiTx as any).actualAmount || 0;
         // Find the main recipient (usually the first non-sender address)
         recipient = outputAddresses.find(addr => addr !== sender) || outputAddresses[0] || '';
-      } else {
+      } else if (userWalletAddress in txOutputMap) {
         userRole = 'recipient';
         // For recipient, get the amount sent to this user's address
-        actualAmount = txOutputMap[userWalletAddress] || (apiTx as any).actualAmount || 0;
+        actualAmount = txOutputMap[userWalletAddress] || 0;
+        recipient = userWalletAddress;
+      } else {
+        userRole = 'recipient';
+        actualAmount = (apiTx as any).actualAmount || 0;
         recipient = userWalletAddress;
       }
     } else {
@@ -151,20 +157,29 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
 
         if (hasTransactionGroups(response.data)) {
           console.log('📊 Found confirmed/pending structure');
+          console.log('Confirmed transactions count:', response.data.confirmed.length);
+          console.log('Pending transactions count:', response.data.pending.length);
           console.log('Confirmed transactions:', response.data.confirmed);
           console.log('Pending transactions:', response.data.pending);
 
-          // Response has confirmed/pending structure
-          allTransactions = [
-            ...response.data.confirmed.map((apiTx: ApiTransaction) => ({
+          // Process confirmed transactions
+          const confirmedTxs = response.data.confirmed.map((apiTx: ApiTransaction) => {
+              return {
               ...enhanceTransaction(apiTx),
               status: 'confirmed' as const,
-            })),
-            ...response.data.pending.map((apiTx: ApiTransaction) => ({
+            };
+          });
+
+          // Process pending transactions
+          const pendingTxs = response.data.pending.map((apiTx: ApiTransaction) => {
+              return {
               ...enhanceTransaction(apiTx),
               status: 'pending' as const,
-            })),
-          ];
+            };
+          });
+
+          allTransactions = [...confirmedTxs, ...pendingTxs];
+          
         } else if (Array.isArray(response.data)) {
           console.log('📊 Found array structure');
           console.log('Transaction array:', response.data);
