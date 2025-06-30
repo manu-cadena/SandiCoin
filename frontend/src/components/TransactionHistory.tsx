@@ -239,9 +239,20 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = () => {
     }
   };
 
-  // Load transactions on component mount
+  // Load transactions on component mount and setup auto-refresh
   useEffect(() => {
     fetchTransactions();
+
+    // Auto-refresh transactions every 20 seconds to catch new transactions
+    const transactionRefreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing transaction history...');
+      fetchTransactions();
+    }, 20000);
+
+    // Cleanup
+    return () => {
+      clearInterval(transactionRefreshInterval);
+    };
   }, []);
 
   // Filter transactions

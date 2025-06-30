@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import AuthForm from './components/AuthForm';
 import SendTransactionForm from './components/SendTransactionForm';
@@ -27,6 +27,44 @@ const AppContent: React.FC = () => {
     transactionId: string;
     status: string;
   } | null>(null);
+  const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
+
+  // Enhanced refresh function with loading state
+  const refreshBalanceWithLoading = async () => {
+    setIsRefreshingBalance(true);
+    try {
+      await refreshUserData();
+    } finally {
+      setIsRefreshingBalance(false);
+    }
+  };
+
+  // Auto-refresh balance to detect incoming transactions
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Auto-refresh balance every 15 seconds to catch incoming transactions
+    const balanceRefreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing balance for incoming transactions...');
+      refreshUserData();
+    }, 15000);
+
+    // Refresh when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isAuthenticated) {
+        console.log('👁️ Tab became visible, refreshing balance...');
+        refreshUserData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      clearInterval(balanceRefreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAuthenticated, refreshUserData]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -84,9 +122,25 @@ const AppContent: React.FC = () => {
                   style={{ color: 'var(--sandicoin-success)' }}>
                   💰 {wallet?.balance || 0} SandiCoins
                 </div>
+                <button
+                  onClick={refreshBalanceWithLoading}
+                  disabled={isRefreshingBalance}
+                  className={`text-xs opacity-60 hover:opacity-100 transition-opacity ${
+                    isRefreshingBalance ? 'animate-spin' : ''
+                  }`}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    color: 'var(--sandicoin-secondary)',
+                    cursor: isRefreshingBalance ? 'not-allowed' : 'pointer',
+                    padding: '2px'
+                  }}
+                  title="Refresh balance manually">
+                  🔄
+                </button>
               </div>
               <small style={{ color: 'var(--sandicoin-secondary)' }}>
-                Wallet Balance
+                Wallet Balance (auto-updates)
               </small>
             </div>
 
