@@ -84,23 +84,6 @@ const AppContent: React.FC = () => {
                   style={{ color: 'var(--sandicoin-success)' }}>
                   💰 {wallet?.balance || 0} SandiCoins
                 </div>
-                <button
-                  onClick={() => {
-                    console.log('🔄 Refreshing balance...');
-                    refreshUserData();
-                  }}
-                  className='btn'
-                  style={{
-                    fontSize: '12px',
-                    padding: '4px 8px',
-                    backgroundColor: 'transparent',
-                    border: '1px solid var(--sandicoin-primary)',
-                    color: 'var(--sandicoin-primary)',
-                    borderRadius: '4px',
-                  }}
-                  title='Refresh Balance'>
-                  🔄
-                </button>
               </div>
               <small style={{ color: 'var(--sandicoin-secondary)' }}>
                 Wallet Balance
@@ -149,7 +132,7 @@ const AppContent: React.FC = () => {
                   <strong>Balance:</strong> {wallet?.balance} SandiCoins
                 </p>
                 <p>
-                  <strong>Address:</strong> {wallet?.publicKey?.slice(0, 10)}...
+                  <strong>Address:</strong> {wallet?.publicKey}
                 </p>
                 <p>
                   <strong>Status:</strong> Active
@@ -160,10 +143,10 @@ const AppContent: React.FC = () => {
 
           {/* Quick Actions */}
           <div className='card'>
-            <h2 className='text-xl font-bold mb-4'>⚡ Quick Actions</h2>
-            <div className='flex gap-4'>
+            <h2 className='text-xl font-bold mb-4 text-center'>⚡ Quick Actions</h2>
+            <div className='flex gap-4 justify-center'>
               <button
-                className='btn btn-primary'
+                className='btn btn-outline'
                 onClick={() => setShowSendModal(true)}>
                 💸 Send Coins
               </button>
@@ -174,14 +157,12 @@ const AppContent: React.FC = () => {
               </button>
               <button
                 onClick={() => setShowBlockchainExplorer(true)}
-                className='btn btn-primary'
-                style={{ backgroundColor: 'var(--sandicoin-primary)' }}>
+                className='btn btn-outline'>
                 🔗 Explore Blockchain
               </button>
               <button
                 onClick={() => setShowMiningInterface(true)}
-                className='btn btn-primary'
-                style={{ backgroundColor: 'var(--sandicoin-warning)' }}>
+                className='btn btn-outline'>
                 ⛏️ Mine Block
               </button>
             </div>
@@ -189,8 +170,8 @@ const AppContent: React.FC = () => {
 
           {/* System Status */}
           <div className='card'>
-            <h2 className='text-xl font-bold mb-4'>🌐 System Status</h2>
-            <div className='flex gap-4'>
+            <h2 className='text-xl font-bold mb-4 text-center'>🌐 System Status</h2>
+            <div className='flex gap-4 justify-center'>
               <div style={{ color: '#166534' }}>✅ Backend Connected</div>
               <div style={{ color: '#166534' }}>✅ Wallet Active</div>
               <div style={{ color: '#166534' }}>✅ Authentication Valid</div>
