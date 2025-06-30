@@ -63,17 +63,23 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
   // State management
   const [miningStats, setMiningStats] = useState<MiningStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMining, setIsMining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [lastMiningResult, setLastMiningResult] = useState<MiningResult | null>(
     null
   );
   const [miningHistory, setMiningHistory] = useState<MiningResult[]>([]);
 
   // Fetch mining statistics
-  const fetchMiningStats = async () => {
+  const fetchMiningStats = async (isManualRefresh: boolean = false) => {
     try {
       setError(null);
+      if (isManualRefresh) {
+        setIsRefreshing(true);
+      }
+      
       console.log('⛏️ Fetching mining statistics...');
 
       const response = await apiService.getMiningStats();
@@ -81,6 +87,7 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
 
       if (response.success && response.data) {
         setMiningStats(response.data);
+        setLastRefreshTime(new Date());
         console.log('✅ Mining stats loaded successfully');
       } else {
         throw new Error('Invalid mining stats response');
@@ -92,6 +99,7 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
       if (!isMining) {
         setIsLoading(false);
       }
+      setIsRefreshing(false);
     }
   };
 
@@ -132,10 +140,35 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
     }
   };
 
-  // Setup auto-refresh - REMOVED CONFUSING AUTO-REFRESH
+  // Setup periodic refresh and visibility handling
   useEffect(() => {
+    // Initial fetch
     fetchMiningStats();
-  }, []);
+
+    // Auto-refresh every 30 seconds for network status
+    const refreshInterval = setInterval(() => {
+      if (!isMining && !isRefreshing) {
+        console.log('🔄 Auto-refreshing mining stats...');
+        fetchMiningStats();
+      }
+    }, 30000);
+
+    // Refresh when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !isMining && !isRefreshing) {
+        console.log('👁️ Tab became visible, refreshing stats...');
+        fetchMiningStats();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isMining, isRefreshing]);
 
   // Helper function to format timestamp
   const formatTimestamp = (timestamp: number) => {
@@ -212,10 +245,10 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
         </div>
         <div className='flex gap-2'>
           <button
-            onClick={fetchMiningStats}
+            onClick={() => fetchMiningStats(true)}
             className='btn btn-secondary text-sm'
-            disabled={isMining}>
-            🔄 Refresh
+            disabled={isMining || isRefreshing}>
+            {isRefreshing ? '🔄 Refreshing...' : '🔄 Refresh'}
           </button>
         </div>
       </div>
@@ -340,7 +373,14 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
         {/* Network Status */}
         {miningStats && (
           <div className='card'>
-            <h3 className='text-lg font-bold mb-4'>🌐 Network Status</h3>
+            <div className='flex justify-between items-center mb-4'>
+              <h3 className='text-lg font-bold'>🌐 Network Status</h3>
+              {isRefreshing && (
+                <span className='text-sm text-gray-500 animate-pulse'>
+                  🔄 Updating...
+                </span>
+              )}
+            </div>
             <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
               <div className='text-center p-3 bg-gray-50 rounded'>
                 <div className='text-xl font-bold text-blue-600'>
@@ -370,7 +410,7 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
               </div>
             </div>
 
-            <div className='mt-4 flex justify-center'>
+            <div className='mt-4 flex flex-col items-center gap-2'>
               <div
                 className={`px-3 py-1 rounded text-sm ${
                   miningStats.network.networkEnabled
@@ -381,6 +421,11 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
                   ? '🟢 Network Enabled'
                   : '🔴 Network Disabled'}
               </div>
+              {lastRefreshTime && (
+                <div className='text-xs text-gray-500'>
+                  Last updated: {lastRefreshTime.toLocaleTimeString()}
+                </div>
+              )}
             </div>
           </div>
         )}
