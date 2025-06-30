@@ -136,7 +136,7 @@ const SendTransactionForm: React.FC<SendTransactionFormProps> = ({
           amount: amount,
           recipient: formData.recipient,
           recipientType: recipientType,
-          transactionId: transactionDetails?.id?.substring(0, 8) || 'N/A',
+          transactionId: transactionDetails?.transaction?.id || 'N/A',
           status: 'pending',
         });
 
@@ -155,7 +155,7 @@ const SendTransactionForm: React.FC<SendTransactionFormProps> = ({
             amount: amount,
             recipient: formData.recipient,
             recipientType: recipientType,
-            transactionId: transactionDetails?.id?.substring(0, 8) || 'N/A',
+            transactionId: transactionDetails?.transaction?.id || 'N/A',
             status: 'pending',
           });
         }

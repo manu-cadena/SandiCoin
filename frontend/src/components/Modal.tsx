@@ -9,6 +9,7 @@ interface ModalProps {
   maxHeight?: string;
   backgroundColor?: string;
   showCloseButton?: boolean;
+  disableBackdropClose?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -20,11 +21,12 @@ const Modal: React.FC<ModalProps> = ({
   maxHeight = '90vh',
   backgroundColor = 'var(--sandicoin-card)',
   showCloseButton = true,
+  disableBackdropClose = false,
 }) => {
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
+    if (e.target === e.currentTarget && !disableBackdropClose) {
       onClose();
     }
   };

@@ -194,10 +194,10 @@ const AppContent: React.FC = () => {
         isOpen={showSendModal}
         onClose={() => setShowSendModal(false)}
         title="💸 Send SandiCoins"
-        maxWidth="500px">
+        maxWidth="500px"
+        disableBackdropClose={true}>
         <SendTransactionForm
           onTransactionCreated={(data) => {
-            setShowSendModal(false);
             setSuccessData(data || null);
           }}
           onCancel={() => setShowSendModal(false)}
@@ -271,7 +271,7 @@ const AppContent: React.FC = () => {
               </div>
               <div className="mb-2">
                 <strong style={{ color: '#166534' }}>Transaction ID:</strong>{' '}
-                {successData.transactionId}...
+                {successData.transactionId}
               </div>
               <div className="mb-4">
                 <strong style={{ color: '#166534' }}>Status:</strong>{' '}
@@ -280,12 +280,23 @@ const AppContent: React.FC = () => {
                 </span>
               </div>
 
-              <button
-                onClick={() => setSuccessData(null)}
-                className="btn btn-primary"
-                style={{ width: '100%' }}>
-                ✅ Got it!
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setSuccessData(null);
+                    setShowSendModal(false);
+                  }}
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}>
+                  ✅ Close & Done
+                </button>
+                <button
+                  onClick={() => setSuccessData(null)}
+                  className="btn btn-outline"
+                  style={{ flex: 1 }}>
+                  📝 Send Another
+                </button>
+              </div>
             </div>
           </div>
         )}
