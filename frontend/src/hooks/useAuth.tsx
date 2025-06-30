@@ -13,19 +13,9 @@ import {
   handleApiError, 
   isAuthError, 
   isNetworkError, 
-  isValidationError, 
-  getErrorMessage 
+  isValidationError 
 } from '../types/errors';
 
-// Custom error type for API errors
-interface ApiError {
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
-  message?: string;
-}
 
 // Types for authentication context
 export interface User {
@@ -132,10 +122,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const processedError = handleApiError(err);
       let userFriendlyMessage: string;
 
+      // Safely get the error message
+      const errorMessage = processedError.message || 'Unknown error';
+      
       if (isAuthError(processedError)) {
         // Handle authentication-specific errors
-        if (processedError.message.toLowerCase().includes('invalid') || 
-            processedError.message.toLowerCase().includes('incorrect')) {
+        if (errorMessage.toLowerCase().includes('invalid') || 
+            errorMessage.toLowerCase().includes('incorrect')) {
           userFriendlyMessage = 'Invalid email or password. Please check your credentials and try again.';
         } else {
           userFriendlyMessage = 'Authentication failed. Please check your email and password.';
@@ -143,13 +136,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else if (isNetworkError(processedError)) {
         userFriendlyMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
       } else if (isValidationError(processedError)) {
-        userFriendlyMessage = processedError.message;
+        userFriendlyMessage = errorMessage;
       } else {
         // For any other 401 status or generic errors
-        if (processedError.message.includes('401') || processedError.message.includes('Unauthorized')) {
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
           userFriendlyMessage = 'Invalid email or password. Please check your credentials and try again.';
         } else {
-          userFriendlyMessage = processedError.message || 'Login failed. Please try again.';
+          userFriendlyMessage = errorMessage || 'Login failed. Please try again.';
         }
       }
 
@@ -191,25 +184,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const processedError = handleApiError(err);
       let userFriendlyMessage: string;
 
+      // Safely get the error message
+      const errorMessage = processedError.message || 'Unknown error';
+      
       if (isValidationError(processedError)) {
         // Handle validation errors (duplicate email, weak password, etc.)
-        if (processedError.message.toLowerCase().includes('email') && 
-            processedError.message.toLowerCase().includes('exists')) {
+        if (errorMessage.toLowerCase().includes('email') && 
+            errorMessage.toLowerCase().includes('exists')) {
           userFriendlyMessage = 'An account with this email already exists. Please use a different email or try logging in.';
-        } else if (processedError.message.toLowerCase().includes('password')) {
+        } else if (errorMessage.toLowerCase().includes('password')) {
           userFriendlyMessage = 'Password does not meet requirements. Please ensure it is at least 8 characters long.';
         } else {
-          userFriendlyMessage = processedError.message;
+          userFriendlyMessage = errorMessage;
         }
       } else if (isNetworkError(processedError)) {
         userFriendlyMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
       } else {
         // Handle other errors
-        if (processedError.message.toLowerCase().includes('duplicate') || 
-            processedError.message.toLowerCase().includes('already exists')) {
+        if (errorMessage.toLowerCase().includes('duplicate') || 
+            errorMessage.toLowerCase().includes('already exists')) {
           userFriendlyMessage = 'An account with this email already exists. Please use a different email or try logging in.';
         } else {
-          userFriendlyMessage = processedError.message || 'Registration failed. Please try again.';
+          userFriendlyMessage = errorMessage || 'Registration failed. Please try again.';
         }
       }
 

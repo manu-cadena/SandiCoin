@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import { handleApiError, isValidationError, isNetworkError } from '../types/errors';
+import { handleApiError } from '../types/errors';
 import apiService from '../services/api';
 
 interface SendTransactionFormProps {
@@ -139,7 +139,7 @@ const SendTransactionForm: React.FC<SendTransactionFormProps> = ({
           amount: amount,
           recipient: formData.recipient,
           recipientType: recipientType,
-          transactionId: transactionDetails?.transaction?.id || 'N/A',
+          transactionId: transactionDetails?.id || 'N/A',
           status: 'pending',
         });
 
@@ -158,7 +158,7 @@ const SendTransactionForm: React.FC<SendTransactionFormProps> = ({
             amount: amount,
             recipient: formData.recipient,
             recipientType: recipientType,
-            transactionId: transactionDetails?.transaction?.id || 'N/A',
+            transactionId: transactionDetails?.id || 'N/A',
             status: 'pending',
           });
         }

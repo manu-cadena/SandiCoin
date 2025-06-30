@@ -59,7 +59,7 @@ interface MiningInterfaceProps {
   onClose?: () => void;
 }
 
-const MiningInterface: React.FC<MiningInterfaceProps> = () => {
+const MiningInterface: React.FC<MiningInterfaceProps> = ({ onClose }) => {
   const { refreshUserData } = useAuth();
   const { showError } = useErrorHandler();
 
@@ -70,9 +70,6 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
   const [isMining, setIsMining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
-  const [lastMiningResult, setLastMiningResult] = useState<MiningResult | null>(
-    null
-  );
   const [miningHistory, setMiningHistory] = useState<MiningResult[]>([]);
 
   // Fetch mining statistics
@@ -90,7 +87,38 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
       console.log('📊 Mining stats data:', response.data);
 
       if (response.success && response.data) {
-        setMiningStats(response.data);
+        // Convert API response to component's MiningStats format
+        const apiStats = response.data as any;
+        const componentStats: MiningStats = {
+          user: apiStats.user || {
+            email: '',
+            role: 'user',
+            blocksMinedByUser: 0,
+            totalRewardsEarned: 0,
+            currentBalance: 0,
+          },
+          network: apiStats.network || {
+            totalBlocks: 0,
+            totalTransactions: 0,
+            pendingTransactions: 0,
+            networkEnabled: true,
+            connectedNodes: 0,
+            serverPort: null,
+            peerNodes: [],
+          },
+          pending: apiStats.pending || {
+            valid: 0,
+            invalid: 0,
+            total: 0,
+            readyForMining: false,
+          },
+          mining: apiStats.mining || {
+            currentDifficulty: 1,
+            blockReward: 50,
+            targetBlockTime: 1000,
+          },
+        };
+        setMiningStats(componentStats);
         setLastRefreshTime(new Date());
         console.log('✅ Mining stats loaded successfully');
       } else {
@@ -125,8 +153,27 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
       console.log('🎉 Mining completed:', response.data);
 
       if (response.success && response.data) {
-        setLastMiningResult(response.data);
-        setMiningHistory((prev) => [response.data, ...prev.slice(0, 4)]); // Keep last 5 results
+        // Convert the response data to MiningResult format
+        const miningResult: MiningResult = {
+          block: response.data,
+          blockIndex: response.data.index || 0,
+          miner: {
+            email: '',
+            walletAddress: '',
+            reward: 50, // Default mining reward
+          },
+          stats: {
+            transactionsProcessed: response.data.data?.length || 0,
+            chainLength: response.data.index || 0,
+            pendingTransactions: 0,
+          },
+          network: {
+            enabled: true,
+            broadcastSent: true,
+            connectedNodes: 0,
+          },
+        };
+        setMiningHistory((prev) => [miningResult, ...prev.slice(0, 4)]); // Keep last 5 results
 
         // Refresh stats and user balance
         await Promise.all([fetchMiningStats(), refreshUserData()]);
@@ -179,10 +226,6 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
     };
   }, [isMining, isRefreshing]);
 
-  // Helper function to format timestamp
-  const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
 
   // Helper function to get mining status color
   const getMiningStatusColor = () => {
@@ -228,7 +271,7 @@ const MiningInterface: React.FC<MiningInterfaceProps> = () => {
         </div>
         <div className='p-4 text-center'>
           <p className='text-red-500 mb-4'>{error}</p>
-          <button onClick={fetchMiningStats} className='btn btn-primary'>
+          <button onClick={() => fetchMiningStats()} className='btn btn-primary'>
             🔄 Retry
           </button>
         </div>

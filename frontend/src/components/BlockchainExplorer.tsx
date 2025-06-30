@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { handleApiError } from '../types/errors';
 import apiService from '../services/api';
@@ -18,20 +17,32 @@ interface Block {
 interface BlockchainStats {
   totalBlocks: number;
   totalTransactions: number;
-  currentDifficulty: number;
-  latestBlockHash: string;
+  difficulty: number;
   pendingTransactions: number;
-  networkHashRate?: number;
-  totalVolume?: number;
-  totalRewards?: number;
-  avgBlockTime?: number;
-  blockReward?: number;
+  // Optional extended stats from backend
+  blockchain?: {
+    totalBlocks: number;
+    totalTransactions: number;
+    currentDifficulty: number;
+    latestBlockHash: string;
+    totalVolume?: number;
+    totalRewards?: number;
+    avgBlockTimeMs?: number;
+  };
+  network?: {
+    pendingTransactions: number;
+  };
+  mining?: {
+    currentReward: number;
+  };
 }
 
 interface NetworkStats {
-  connectedNodes: number;
-  networkType: string;
-  syncStatus: string;
+  connectedPeers: number;
+  // Extended fields that might come from backend
+  connectedNodes?: number;
+  networkType?: string;
+  syncStatus?: string;
   serverPort?: number | null;
   nodeId?: string | null;
 }
@@ -86,21 +97,22 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
 
         // Extract the actual blockchain chain from your backend structure
         let blockchainChain = null;
+        const typedResponseData = responseData as any;
 
         if (
-          responseData?.blockchain?.chain &&
-          Array.isArray(responseData.blockchain.chain)
+          typedResponseData?.blockchain?.chain &&
+          Array.isArray(typedResponseData.blockchain.chain)
         ) {
           // Your backend structure: data.blockchain.chain
-          blockchainChain = responseData.blockchain.chain;
+          blockchainChain = typedResponseData.blockchain.chain;
           console.log(
             '✅ Found blockchain chain in data.blockchain.chain:',
             blockchainChain.length,
             'blocks'
           );
-        } else if (Array.isArray(responseData)) {
+        } else if (Array.isArray(typedResponseData)) {
           // Fallback: direct array
-          blockchainChain = responseData;
+          blockchainChain = typedResponseData;
           console.log(
             '✅ Found blockchain as direct array:',
             blockchainChain.length,
@@ -109,9 +121,9 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
         } else {
           console.warn(
             '⚠️ Unexpected blockchain data structure:',
-            responseData
+            typedResponseData
           );
-          console.log('  - Available keys:', Object.keys(responseData || {}));
+          console.log('  - Available keys:', Object.keys(typedResponseData || {}));
         }
 
         if (blockchainChain && blockchainChain.length > 0) {
@@ -137,25 +149,34 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
         const statsData = statsResponse.value.data;
         console.log('📈 Stats data received:', statsData);
 
-        // Extract the stats from your backend structure
-        if (statsData?.blockchain && statsData?.network && statsData?.mining) {
-          const transformedStats = {
-            totalBlocks: statsData.blockchain.totalBlocks || 0,
-            totalTransactions: statsData.blockchain.totalTransactions || 0,
-            currentDifficulty: statsData.blockchain.currentDifficulty || 0,
-            latestBlockHash: statsData.blockchain.latestBlockHash || '',
-            pendingTransactions: statsData.network.pendingTransactions || 0,
-            networkHashRate: 0, // Not provided by your backend
-            totalVolume: statsData.blockchain.totalVolume || 0,
-            totalRewards: statsData.blockchain.totalRewards || 0,
-            avgBlockTime: statsData.blockchain.avgBlockTimeMs || 0,
-            blockReward: statsData.mining.currentReward || 50,
+        // Handle different response structures from your backend
+        let transformedStats: BlockchainStats;
+        
+        const typedStatsData = statsData as any;
+        
+        if (typedStatsData?.blockchain && typedStatsData?.network && typedStatsData?.mining) {
+          // Extended backend response
+          transformedStats = {
+            totalBlocks: typedStatsData.blockchain.totalBlocks || 0,
+            totalTransactions: typedStatsData.blockchain.totalTransactions || 0,
+            difficulty: typedStatsData.blockchain.currentDifficulty || 0,
+            pendingTransactions: typedStatsData.network.pendingTransactions || 0,
+            blockchain: typedStatsData.blockchain,
+            network: typedStatsData.network,
+            mining: typedStatsData.mining,
           };
-          setBlockchainStats(transformedStats);
-          console.log('✅ Stats processed successfully:', transformedStats);
         } else {
-          console.warn('⚠️ Unexpected stats data structure:', statsData);
+          // Simple backend response matching API interface
+          transformedStats = {
+            totalBlocks: typedStatsData.totalBlocks || 0,
+            totalTransactions: typedStatsData.totalTransactions || 0,
+            difficulty: typedStatsData.difficulty || 0,
+            pendingTransactions: typedStatsData.pendingTransactions || 0,
+          };
         }
+        
+        setBlockchainStats(transformedStats);
+        console.log('✅ Stats processed successfully:', transformedStats);
       } else {
         console.error('❌ Stats request failed:', statsResponse.reason);
       }
@@ -167,13 +188,14 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
 
         // Transform your backend network data structure
         if (networkData) {
-          const transformedNetworkStats = {
-            connectedNodes:
-              networkData.connectedPeers || networkData.connectedNodes || 0,
-            networkType: networkData.networkType || 'P2P',
-            syncStatus: networkData.syncStatus || 'Active',
-            serverPort: networkData.serverPort || null,
-            nodeId: networkData.nodeId || null,
+          const typedNetworkData = networkData as any;
+          const transformedNetworkStats: NetworkStats = {
+            connectedPeers: typedNetworkData.connectedPeers || typedNetworkData.connectedNodes || 0,
+            connectedNodes: typedNetworkData.connectedNodes,
+            networkType: typedNetworkData.networkType || 'P2P',
+            syncStatus: typedNetworkData.syncStatus || 'Active',
+            serverPort: typedNetworkData.serverPort || null,
+            nodeId: typedNetworkData.nodeId || null,
           };
           setNetworkStats(transformedNetworkStats);
           console.log(
@@ -340,7 +362,7 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
             </div>
             <div className='text-center p-4 bg-gray-50 rounded'>
               <div className='text-2xl font-bold text-purple-600'>
-                {blockchainStats.currentDifficulty || '0'}
+                {blockchainStats.difficulty || blockchainStats.blockchain?.currentDifficulty || '0'}
               </div>
               <div className='text-sm text-gray-600'>Current Difficulty</div>
             </div>
@@ -350,36 +372,36 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
               </div>
               <div className='text-sm text-gray-600'>Pending Transactions</div>
             </div>
-            {blockchainStats.totalVolume !== undefined && (
+            {blockchainStats.blockchain?.totalVolume !== undefined && (
               <div className='text-center p-4 bg-gray-50 rounded'>
                 <div className='text-2xl font-bold text-indigo-600'>
-                  {blockchainStats.totalVolume}
+                  {blockchainStats.blockchain.totalVolume}
                 </div>
                 <div className='text-sm text-gray-600'>
                   Total Volume (SandiCoins)
                 </div>
               </div>
             )}
-            {blockchainStats.totalRewards !== undefined && (
+            {blockchainStats.blockchain?.totalRewards !== undefined && (
               <div className='text-center p-4 bg-gray-50 rounded'>
                 <div className='text-2xl font-bold text-yellow-600'>
-                  {blockchainStats.totalRewards}
+                  {blockchainStats.blockchain.totalRewards}
                 </div>
                 <div className='text-sm text-gray-600'>Mining Rewards Paid</div>
               </div>
             )}
-            {blockchainStats.avgBlockTime !== undefined && (
+            {blockchainStats.blockchain?.avgBlockTimeMs !== undefined && (
               <div className='text-center p-4 bg-gray-50 rounded'>
                 <div className='text-2xl font-bold text-red-600'>
-                  {Math.round(blockchainStats.avgBlockTime / 1000)}s
+                  {Math.round(blockchainStats.blockchain.avgBlockTimeMs / 1000)}s
                 </div>
                 <div className='text-sm text-gray-600'>Avg Block Time</div>
               </div>
             )}
-            {blockchainStats.blockReward !== undefined && (
+            {blockchainStats.mining?.currentReward !== undefined && (
               <div className='text-center p-4 bg-gray-50 rounded'>
                 <div className='text-2xl font-bold text-emerald-600'>
-                  {blockchainStats.blockReward}
+                  {blockchainStats.mining.currentReward}
                 </div>
                 <div className='text-sm text-gray-600'>Block Reward</div>
               </div>
@@ -400,19 +422,19 @@ const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ onClose }) => {
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <div className='text-center p-4 bg-gray-50 rounded'>
               <div className='text-2xl font-bold text-blue-600'>
-                {networkStats.connectedNodes || '0'}
+                {networkStats.connectedPeers || networkStats.connectedNodes || '0'}
               </div>
               <div className='text-sm text-gray-600'>Connected Nodes</div>
             </div>
             <div className='text-center p-4 bg-gray-50 rounded'>
               <div className='text-lg font-bold text-green-600'>
-                {networkStats.networkType || 'Unknown'}
+                {networkStats.networkType || 'P2P'}
               </div>
               <div className='text-sm text-gray-600'>Network Type</div>
             </div>
             <div className='text-center p-4 bg-gray-50 rounded'>
               <div className='text-lg font-bold text-purple-600'>
-                {networkStats.syncStatus || 'Unknown'}
+                {networkStats.syncStatus || 'Active'}
               </div>
               <div className='text-sm text-gray-600'>Sync Status</div>
             </div>
